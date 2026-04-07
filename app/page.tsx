@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useCallback } from "react"
+import Link from "next/link"
+import { Keyboard } from "lucide-react"
 import { Flashcard } from "@/components/flashcard"
 import { SessionComplete } from "@/components/session-complete"
 
@@ -65,6 +67,7 @@ export default function StudyPage() {
   const [correctCount, setCorrectCount] = useState(0)
   const [isComplete, setIsComplete] = useState(false)
   const [cards] = useState(SAMPLE_CARDS)
+  const [lastWhoosh, setLastWhoosh] = useState<number | null>(null)
 
   const handleResult = useCallback((correct: boolean) => {
     if (correct) {
@@ -84,6 +87,20 @@ export default function StudyPage() {
     setIsComplete(false)
   }, [])
 
+  const handleSkip = useCallback(() => {
+    if (currentIndex + 1 >= cards.length) {
+      setTimeout(() => setIsComplete(true), 100)
+    } else {
+      setCurrentIndex((prev) => prev + 1)
+    }
+  }, [currentIndex, cards.length])
+
+  const handlePrev = useCallback(() => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1)
+    }
+  }, [currentIndex])
+
   const currentCard = cards[currentIndex]
 
   // DEBUG: cycle cards to test entry animation
@@ -93,6 +110,13 @@ export default function StudyPage() {
 
   return (
     <main className="h-svh flex items-center justify-center">
+      <Link
+        href="/shortcuts"
+        className="fixed bottom-6 left-6 z-50 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+        aria-label="Keyboard shortcuts"
+      >
+        <Keyboard size={18} />
+      </Link>
       {/* DEBUG BUTTONS — remove when done */}
       <div className="fixed bottom-6 right-6 z-50 flex gap-2">
         <button
@@ -107,6 +131,11 @@ export default function StudyPage() {
         >
           next card [debug]
         </button>
+        {lastWhoosh !== null && (
+          <span className="bg-black text-white text-xs font-mono px-3 py-2 rounded-lg opacity-60">
+            whoosh {lastWhoosh}
+          </span>
+        )}
       </div>
       {isComplete ? (
         <SessionComplete
@@ -124,6 +153,9 @@ export default function StudyPage() {
           currentIndex={currentIndex}
           totalCards={cards.length}
           onResult={handleResult}
+          onSkip={handleSkip}
+          onPrev={handlePrev}
+          onWhooshPlayed={setLastWhoosh}
         />
       )}
     </main>

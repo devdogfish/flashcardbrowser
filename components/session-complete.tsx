@@ -21,13 +21,21 @@ export function SessionComplete({
   const rounded = useTransform(count, (v) => Math.round(v))
 
   useEffect(() => {
-    const audio = new Audio("/completed-task.mp3")
+    const audio = new Audio("/sounds/completed-task.mp3")
     audio.volume = 0.3
     audio.play().catch(() => {})
 
     const controls = animate(count, percentage, { duration: 1.2, ease: "easeOut" })
     return () => controls.stop()
   }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "KeyR") onRestart()
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [onRestart])
 
   const container = {
     initial: {},
