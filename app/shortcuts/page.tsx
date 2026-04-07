@@ -1,3 +1,6 @@
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -8,6 +11,7 @@ const sections = [
     rows: [
       { keys: ["Space", "Enter"], description: "Flip card" },
       { keys: ["⌘ Enter"], description: "Got it — without flipping" },
+      { keys: ["⇧ ⌘ Enter"], description: "Again — without flipping" },
     ],
   },
   {
@@ -30,7 +34,10 @@ const sections = [
   },
 ];
 
-export default function ShortcutsPage() {
+export default async function ShortcutsPage() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) redirect("/sign-in");
+
   return (
     <main className="min-h-svh flex items-center justify-center px-5 py-16">
       <div className="w-full max-w-sm">

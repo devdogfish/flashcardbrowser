@@ -1,24 +1,32 @@
+import { createAirPocketSystem } from './air-pockets'
+
+// Toggle air pockets on/off — one line
+const AIR_POCKETS_ENABLED = false
+
 // --- Master strength (1.0 = current look, 0 = invisible, 2.0 = double intensity) ---
 const STRENGTH = 1.0
 
 // --- Tuning Constants ---
-const OCTAVES     = 5
-const WARP_OCTAVES = 3       // warp field needs less detail
-const PERSISTENCE = 0.5
-const LACUNARITY  = 2.0
-const NOISE_SCALE = 0.0032
+const OCTAVES      = 5
+const WARP_OCTAVES = 3
+const PERSISTENCE  = 0.5
+const LACUNARITY   = 2.0
+const NOISE_SCALE  = 0.0032
 
-const DRIFT_SPEED  = 0.42   // CSS px/frame — main horizontal drift
-const WARP_SPEED   = 0.22   // how fast the warp field itself evolves
-const WARP_STRENGTH = 3.5   // how strongly the warp displaces sample coords (noise units)
+const DRIFT_SPEED   = 0.42   // CSS px/frame — main horizontal drift
+const WARP_SPEED    = 0.22
+const WARP_STRENGTH = 3.5
 
 const DENSITY_THRESHOLD = 0.36
-const DENSITY_CONTRAST  = 3.0
-const MAX_ALPHA         = 0.18 * STRENGTH
+const DENSITY_CONTRAST  = 2.6
+const MAX_ALPHA         = 0.21 * STRENGTH
 
-const BAND_CENTER    = 0.52
-const BAND_HALFWIDTH = 0.22
-const BAND_FALLOFF   = 0.16
+const WHITE_THRESHOLD = 0.82   // d values above this blend toward white
+const WHITE_MAX_ALPHA = 0.76   // alpha at peak white patches
+
+const BAND_CENTER    = 0.50
+const BAND_HALFWIDTH = 0.55
+const BAND_FALLOFF   = 0.00
 
 const VOID_FREQ     = 0.25
 const VOID_TIME     = 0.12
@@ -29,14 +37,13 @@ const SCALE = 4
 const FOG_R = 92, FOG_G = 97, FOG_B = 116
 
 // --- Wind disturbance system ---
-// When a card whooshes in, a radial void is punched into the fog and fades out.
 type Disturbance = { x: number; y: number; t: number }
 const disturbances: Disturbance[] = []
 
-const DIST_EXPAND_MS  = 310    // radius grows to full over this duration
-const DIST_TOTAL_MS   = 3800   // how long until the void fully closes
-const DIST_MAX_R_FRAC = 0.47   // max radius as fraction of screen width (in block pixels)
-const DIST_STRENGTH   = 1.0    // threshold boost at centre — 0 = no effect, >1 = hard clear
+const DIST_EXPAND_MS  = 310
+const DIST_TOTAL_MS   = 3800
+const DIST_MAX_R_FRAC = 0.47
+const DIST_STRENGTH   = 1.0
 
 export function addWindDisturbance(screenX: number, screenY: number): void {
   disturbances.push({ x: screenX, y: screenY, t: performance.now() })
@@ -51,11 +58,9 @@ const PERM = new Uint8Array(512)
     const j = (Math.random() * (i + 1)) | 0
     const t = p[i]; p[i] = p[j]; p[j] = t
   }
-  // Double to avoid & 255 in hot loop
   for (let i = 0; i < 512; i++) PERM[i] = p[i & 255]
 })()
 
-// Quintic smoothstep (C2 continuous)
 function quintic(t: number): number {
   return t * t * t * (t * (t * 6 - 15) + 10)
 }
@@ -87,23 +92,16 @@ function fbmN(x: number, y: number, octaves: number): number {
   return v / maxAmp
 }
 
-// --- Domain-warped fBm ---
-// Warp the sample coordinates using a secondary noise field before sampling.
-// This creates organic swirling/billowing motion rather than simple translation.
-// Two independent warp channels (offset by magic constants) give a 2D warp vector.
 function warpedSample(x: number, y: number, driftT: number, warpT: number): number {
-  // Warp vector — coarse noise field that evolves at warpT
-  const wx = fbmN(x + warpT * 0.4,        y + 0.3,           WARP_OCTAVES) - 0.5
+  const wx = fbmN(x + warpT * 0.4,        y + 0.3,               WARP_OCTAVES) - 0.5
   const wy = fbmN(x + 4.1 + warpT * 0.35, y + 2.8 + warpT * 0.2, WARP_OCTAVES) - 0.5
 
-  // Warp + drift: displace coords then slide horizontally
   const sx = x + WARP_STRENGTH * wx + driftT
   const sy = y + WARP_STRENGTH * wy
 
   return fbmN(sx, sy, OCTAVES)
 }
 
-// --- Vertical mask — precomputed each init ---
 function buildVerticalMask(bh: number): Float32Array {
   const mask = new Float32Array(bh)
   for (let py = 0; py < bh; py++) {
@@ -127,7 +125,7 @@ export function drawFog2(ctx: CanvasRenderingContext2D, w: number, h: number): (
       ? new OffscreenCanvas(bw, bh)
       : (() => { const c = document.createElement('canvas'); c.width = bw; c.height = bh; return c })()
 
-  const offCtx  = (offscreen as OffscreenCanvas).getContext('2d') as CanvasRenderingContext2D
+  const offCtx  = (offscreen as OffscreenCanvas).getContext('2d') as unknown as CanvasRenderingContext2D
   const imgData = offCtx.createImageData(bw, bh)
   const px      = imgData.data
 
@@ -136,30 +134,29 @@ export function drawFog2(ctx: CanvasRenderingContext2D, w: number, h: number): (
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
 
-  let driftTime = 0  // drives horizontal translation
-  let warpTime  = 0  // drives warp field evolution (different rate = never loops)
+  let driftTime = 0
+  let warpTime  = 0
   let rafId: number
 
-  function frame() {
-    // Drift and warp advance at different rates so the pattern never repeats
-    driftTime += DRIFT_SPEED  * NOISE_SCALE
-    warpTime  += WARP_SPEED   * NOISE_SCALE * 0.6
+  const pocketSystem = AIR_POCKETS_ENABLED ? createAirPocketSystem(bw, bh) : null
 
-    // --- Pre-compute active wind disturbances for this frame ---
+  function frame() {
+    driftTime += DRIFT_SPEED * NOISE_SCALE
+    warpTime  += WARP_SPEED  * NOISE_SCALE * 0.6
+
+    pocketSystem?.update()
+
+    // --- Pre-compute wind disturbances ---
     const now  = performance.now()
     const maxR = bw * DIST_MAX_R_FRAC
-    // Expire old ones
     for (let i = disturbances.length - 1; i >= 0; i--) {
       if (now - disturbances[i].t >= DIST_TOTAL_MS) disturbances.splice(i, 1)
     }
-    // Map each disturbance to block-pixel space with current radius + strength
     const activeDisturbs = disturbances.map(d => {
-      const elapsed  = now - d.t
-      // Radius: fast ease-out cubic expansion
-      const expandT  = Math.min(elapsed / DIST_EXPAND_MS, 1.0)
-      const r        = maxR * (1 - Math.pow(1 - expandT, 3))
-      // Strength: power-curve fade so it holds longer then drops off
-      const s        = DIST_STRENGTH * Math.pow(1 - elapsed / DIST_TOTAL_MS, 1.8)
+      const elapsed = now - d.t
+      const expandT = Math.min(elapsed / DIST_EXPAND_MS, 1.0)
+      const r       = maxR * (1 - Math.pow(1 - expandT, 3))
+      const s       = DIST_STRENGTH * Math.pow(1 - elapsed / DIST_TOTAL_MS, 1.8)
       return { bx: d.x / SCALE, by: d.y / SCALE, r, s }
     })
 
@@ -180,12 +177,15 @@ export function drawFog2(ctx: CanvasRenderingContext2D, w: number, h: number): (
 
         const raw = warpedSample(nx, ny, driftTime, warpTime)
 
-        // Void carving: slow large-scale modulation of threshold
+        // Slow large-scale void carving
         const voidN = noise2d(
           nx * VOID_FREQ + warpTime * VOID_TIME,
           ny * VOID_FREQ + warpTime * VOID_TIME * 0.4
         )
         let thresh = DENSITY_THRESHOLD + (voidN - 0.5) * 2 * VOID_STRENGTH
+
+        // Air pocket force fields
+        if (pocketSystem) thresh += pocketSystem.threshBoost(qx, py)
 
         // Wind disturbance: card whoosh temporarily repels the fog
         for (const ad of activeDisturbs) {
@@ -193,8 +193,8 @@ export function drawFog2(ctx: CanvasRenderingContext2D, w: number, h: number): (
           const dy     = py - ad.by
           const distSq = dx * dx + dy * dy
           if (distSq < ad.r * ad.r) {
-            const ft = 1 - Math.sqrt(distSq) / ad.r  // 1 at centre → 0 at edge
-            thresh  += ft * ft * (3 - 2 * ft) * ad.s  // smoothstep falloff
+            const ft = 1 - Math.sqrt(distSq) / ad.r
+            thresh  += ft * ft * (3 - 2 * ft) * ad.s
           }
         }
 
@@ -204,15 +204,27 @@ export function drawFog2(ctx: CanvasRenderingContext2D, w: number, h: number): (
           continue
         }
 
-        let d = shifted / (1 - thresh)
+        const denom = Math.max(1 - thresh, 0.01)
+        let d = shifted / denom
         d = d * d * (3 - 2 * d)
         d = Math.pow(d, 1 / DENSITY_CONTRAST)
 
-        const a = (d * vm * MAX_ALPHA * 255 + 0.5) | 0
-        px[idx]   = FOG_R
-        px[idx+1] = FOG_G
-        px[idx+2] = FOG_B
-        px[idx+3] = a
+        let r = FOG_R, g = FOG_G, b = FOG_B
+        let alpha = d * vm * MAX_ALPHA
+
+        if (d > WHITE_THRESHOLD) {
+          const wt     = (d - WHITE_THRESHOLD) / (1 - WHITE_THRESHOLD)
+          const wBlend = wt * wt  // ease in
+          r     = (FOG_R + (255 - FOG_R) * wBlend + 0.5) | 0
+          g     = (FOG_G + (255 - FOG_G) * wBlend + 0.5) | 0
+          b     = (FOG_B + (255 - FOG_B) * wBlend + 0.5) | 0
+          alpha = d * vm * (MAX_ALPHA + (WHITE_MAX_ALPHA - MAX_ALPHA) * wBlend)
+        }
+
+        px[idx]   = r
+        px[idx+1] = g
+        px[idx+2] = b
+        px[idx+3] = (alpha * 255 + 0.5) | 0
       }
     }
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { addWindDisturbance } from "@/components/overlays/draw-fog2";
 import Image from "next/image";
 
@@ -139,18 +140,19 @@ export function Flashcard({
 
     // ENTER GROUP: whoosh plays immediately as card starts flying in
     // Offsets skip the leading silence in each file
-    const WHOOSH_OFFSETS = [0.267, 0.203, 0.476, 0.075, 0.203];
+    const WHOOSH_OFFSETS = [0.267, 0.203, 0.476, 0.075, 0.38];
     const buffers = whooshBuffersRef.current;
     if (audioCtxRef.current && buffers.length > 0) {
       const ctx = audioCtxRef.current;
       if (ctx.state === "suspended") ctx.resume();
       const idx = 4; // whoosh 5
       const gain = ctx.createGain();
-      gain.gain.value = 0.6;
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.01);
       gain.connect(ctx.destination);
       const src = ctx.createBufferSource();
       src.buffer = buffers[idx];
-      src.playbackRate.value = 1.3;
+      src.playbackRate.value = 1.5;
       src.connect(gain);
       src.start(0, WHOOSH_OFFSETS[idx]);
       onWhooshPlayed?.(idx + 1);
@@ -199,6 +201,12 @@ export function Flashcard({
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Shift+Cmd/Ctrl+Enter = Didn't get it without flipping
+      if (e.code === "Enter" && (e.metaKey || e.ctrlKey) && e.shiftKey) {
+        e.preventDefault();
+        handleResult(false);
+        return;
+      }
       // Cmd/Ctrl+Enter = Got it without flipping
       if (e.code === "Enter" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
@@ -290,7 +298,7 @@ export function Flashcard({
       <motion.div
         key={currentIndex}
         ref={cardRef}
-        className="relative w-full max-w-md aspect-[3/4] max-h-[65vh] cursor-pointer"
+        className="relative w-full max-w-md aspect-3/4 max-h-[65vh] cursor-pointer"
         onClick={handleFlip}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
@@ -417,36 +425,25 @@ export function Flashcard({
             : "opacity-0 translate-y-2 pointer-events-none",
         )}
       >
-        <button
+        <Button
+          variant="secondary"
+          className="hover:border-destructive/50 hover:text-destructive hover:bg-destructive/5"
           onClick={(e) => {
             e.stopPropagation();
             handleResult(false);
           }}
-          className={cn(
-            "flex items-center justify-center gap-2 px-8 py-3 rounded-full",
-            "text-sm tracking-wide transition-all duration-200",
-            "border border-border hover:border-destructive/50",
-            "text-muted-foreground hover:text-destructive",
-            "hover:bg-destructive/5 active:scale-95",
-          )}
         >
           Again
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={(e) => {
             e.stopPropagation();
             handleResult(true);
           }}
-          className={cn(
-            "flex items-center justify-center gap-2 px-8 py-3 rounded-full",
-            "text-sm tracking-wide transition-all duration-200",
-            "bg-foreground text-background",
-            "hover:bg-foreground/90 active:scale-95",
-          )}
         >
           Got it
-        </button>
+        </Button>
       </div>
 
       {/* Progress */}

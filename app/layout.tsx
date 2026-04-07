@@ -43,7 +43,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${_geist.variable} ${_geistMono.variable} ${_instrumentSerif.variable}`}>
-      <body className="font-sans antialiased bg-background text-foreground">
+      <body className="font-sans antialiased bg-background text-foreground min-h-svh">
         <DustOverlay />
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}

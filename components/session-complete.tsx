@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { motion, useMotionValue, useTransform, animate } from "motion/react"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 
 interface SessionCompleteProps {
   correctCount: number
@@ -62,19 +63,15 @@ export function SessionComplete({
         {correctCount} of {totalCards} correct
       </motion.p>
 
-      <motion.button
-        onClick={onRestart}
-        className={cn(
-          "mt-6 px-8 py-3.5 rounded-full",
-          "text-sm tracking-wide transition-all duration-200",
-          "bg-foreground text-background",
-          "hover:bg-foreground/90 active:scale-[0.98]"
-        )}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1, transition: { duration: 0.25, delay: 0.3 } }}
-      >
-        Study again
-      </motion.button>
+      <Button size="lg" className="mt-6 active:scale-[0.98]" asChild>
+        <motion.button
+          onClick={onRestart}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, transition: { duration: 0.25, delay: 0.3 } }}
+        >
+          Study again
+        </motion.button>
+      </Button>
     </motion.div>
   )
 }
