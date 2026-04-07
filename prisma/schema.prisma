@@ -43,6 +43,7 @@ model User {
   decks         Deck[]
   settings      UserSettings?
   usage         FlashcardUsage[]
+  favorites     DeckFavorite[]
   emailVerified Boolean          @default(false)
   image         String?
   updatedAt     DateTime         @updatedAt
@@ -65,15 +66,29 @@ model Deck {
   ownerId     String
   title       String
   description String?
+  coverImage  String?
   visibility  Visibility @default(PRIVATE)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  owner User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  cards Flashcard[]
+  owner     User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  cards     Flashcard[]
+  favorites DeckFavorite[]
 
   @@index([ownerId])
   @@index([visibility])
+}
+
+model DeckFavorite {
+  userId    String
+  deckId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deck Deck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  @@id([userId, deckId])
+  @@index([userId])
 }
 
 model Flashcard {

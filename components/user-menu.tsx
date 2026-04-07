@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { signOut } from "@/lib/auth-client"
+import Link from "next/link"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +50,10 @@ export function UserMenu({ userName, userEmail, userImage }: UserMenuProps) {
             <span className="font-medium text-sm">{userName}</span>
             <span className="text-xs font-normal text-muted-foreground">{userEmail}</span>
           </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link href="/decks">Switch decks</Link>
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-muted-foreground cursor-pointer"

@@ -123,6 +123,7 @@ async function main() {
       title: "European Portuguese",
       description: "Essential vocabulary and phrases for European Portuguese (PT-PT).",
       visibility: "PUBLIC",
+      coverImage: "/deck-covers/portuguese.jpg",
     },
   })
 
@@ -200,9 +201,102 @@ async function main() {
     })
   }
 
+  // ── Getting Jacked deck ────────────────────────────────────────────────────
+  const gettingJackedDeck = await prisma.deck.upsert({
+    where: { id: "deck-getting-jacked" },
+    update: {},
+    create: {
+      id: "deck-getting-jacked",
+      ownerId: seedUser.id,
+      title: "Getting Jacked",
+      description: "Workout principles, muscle anatomy, nutrition basics, and training techniques for building muscle.",
+      visibility: "PRIVATE",
+    },
+  })
+
+  const gettingJackedCards = [
+    {
+      id: "gj-01",
+      question: "What is progressive overload?",
+      answer: "Gradually increasing the stress placed on the body during training — through more weight, reps, sets, or reduced rest — so the muscle continues adapting and growing.",
+      position: 1,
+    },
+    {
+      id: "gj-02",
+      question: "What are the three primary muscle fiber types?",
+      answer: "Type I (slow-twitch, endurance), Type IIa (fast-twitch, mixed), and Type IIx (fast-twitch, power). Hypertrophy training targets Type II fibers most.",
+      position: 2,
+    },
+    {
+      id: "gj-03",
+      question: "How much protein do you need to build muscle?",
+      answer: "Around 1.6–2.2 g per kg of bodyweight per day. Spread across meals of roughly 30–40 g to maximise muscle protein synthesis.",
+      position: 3,
+    },
+    {
+      id: "gj-04",
+      question: "What is a caloric surplus and why does it matter?",
+      answer: "Consuming more calories than you burn. A modest surplus (200–500 kcal/day) provides energy for muscle synthesis without excessive fat gain.",
+      position: 4,
+    },
+    {
+      id: "gj-05",
+      question: "What does RPE mean in training?",
+      answer: "Rate of Perceived Exertion — a 1–10 scale for how hard a set feels. RPE 8 means 2 reps left in the tank. Useful for auto-regulating intensity.",
+      position: 5,
+    },
+    {
+      id: "gj-06",
+      question: "What is the mind-muscle connection?",
+      answer: "Consciously focusing on contracting the target muscle during a lift. Research suggests it increases muscle activation, particularly useful for isolation exercises.",
+      position: 6,
+    },
+    {
+      id: "gj-07",
+      question: "How long should you rest between hypertrophy sets?",
+      answer: "2–4 minutes for compound lifts; 1–2 minutes for isolation exercises. Longer rest preserves performance and total volume, leading to better hypertrophy.",
+      position: 7,
+    },
+    {
+      id: "gj-08",
+      question: "What is muscle protein synthesis (MPS)?",
+      answer: "The cellular process of building new muscle proteins in response to training and protein intake. Elevated for ~24–48 hours after a session.",
+      position: 8,
+    },
+    {
+      id: "gj-09",
+      question: "What is the difference between compound and isolation exercises?",
+      answer: "Compound lifts (squat, bench, deadlift) engage multiple joints and muscle groups — ideal for overall mass. Isolation exercises (curls, flyes) target a single muscle.",
+      position: 9,
+    },
+    {
+      id: "gj-10",
+      question: "Why is sleep important for muscle growth?",
+      answer: "Most muscle repair and growth hormone release happens during deep sleep. Aim for 7–9 hours. Sleep deprivation raises cortisol and impairs recovery.",
+      position: 10,
+    },
+  ]
+
+  for (const card of gettingJackedCards) {
+    await prisma.flashcard.upsert({
+      where: { id: card.id },
+      update: {},
+      create: { ...card, deckId: gettingJackedDeck.id },
+    })
+  }
+
+  // ── Favorites ──────────────────────────────────────────────────────────────
+  await prisma.deckFavorite.upsert({
+    where: { userId_deckId: { userId: seedUser.id, deckId: portugueseDeck.id } },
+    update: {},
+    create: { userId: seedUser.id, deckId: portugueseDeck.id },
+  })
+
   console.log("Seed complete.")
   console.log(`  Data Science deck: ${dataScienceCards.length} cards`)
   console.log(`  European Portuguese deck: ${portugueseCards.length} cards`)
+  console.log(`  Getting Jacked deck: ${gettingJackedCards.length} cards`)
+  console.log(`  Favorites: Portuguese Essentials favorited for seed user`)
 }
 
 main()

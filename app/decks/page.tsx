@@ -1,0 +1,49 @@
+import { headers } from "next/headers"
+import { redirect } from "next/navigation"
+import { auth } from "@/lib/auth"
+import { prisma } from "@/lib/db"
+import { DeckSelection } from "@/components/deck-selection"
+
+export default async function DecksPage() {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session) redirect("/sign-in")
+
+  const [userDecks, publicDecks, favorites] = await Promise.all([
+    prisma.deck.findMany({
+      where: { ownerId: session.user.id, visibility: "PRIVATE" },
+      include: { _count: { select: { cards: true } } },
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.deck.findMany({
+      where: { visibility: "PUBLIC" },
+      include: {
+        _count: { select: { cards: true } },
+        owner: { select: { name: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.deckFavorite.findMany({
+      where: { userId: session.user.id },
+      select: { deckId: true },
+    }),
+  ])
+
+  const favoriteIds = new Set(favorites.map((f) => f.deckId))
+
+  const toRow = (d: { id: string; title: string; description: string | null; coverImage: string | null; _count: { cards: number }; owner?: { name: string | null } | null }) => ({
+    id: d.id,
+    title: d.title,
+    description: d.description ?? "",
+    cardCount: d._count.cards,
+    coverImage: d.coverImage ?? null,
+    ownerName: d.owner?.name ?? null,
+  })
+
+  return (
+    <DeckSelection
+      userDecks={userDecks.map(toRow)}
+      publicDecks={publicDecks.map(toRow)}
+      favoriteIds={[...favoriteIds]}
+    />
+  )
+}
