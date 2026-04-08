@@ -12,8 +12,11 @@ interface CardData {
   question: string
   answer: string
   image?: string
-  familiarity: number
-  due?: boolean
+  stability: number | null
+  difficulty: number | null
+  nextDue: number | null      // Unix ms
+  reviewCount: number
+  lastReviewedAt: number | null  // Unix ms
 }
 
 interface StudyPageProps {
@@ -22,7 +25,7 @@ interface StudyPageProps {
 }
 
 export function StudyPage({ cards }: StudyPageProps) {
-  const initialDueCards = useRef(cards.filter((c) => c.due))
+  const initialDueCards = useRef(cards.filter((c) => c.nextDue !== null && c.nextDue <= Date.now()))
   const [activeCards, setActiveCards] = useState(cards)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [correctCount, setCorrectCount] = useState(0)
@@ -32,10 +35,11 @@ export function StudyPage({ cards }: StudyPageProps) {
   const currentCard = activeCards[currentIndex]
 
   const handleResult = useCallback(
-    (correct: boolean) => {
-      recordUsage(currentCard.id, correct)
+    (grade: "forgot" | "good") => {
+      recordUsage(currentCard.id, grade)
 
-      if (!correct) {
+      const isCorrect = grade === "good"
+      if (!isCorrect) {
         setWrongCards((prev) => [...prev, currentCard])
       } else {
         setCorrectCount((prev) => prev + 1)
@@ -113,7 +117,6 @@ export function StudyPage({ cards }: StudyPageProps) {
           question={currentCard.question}
           answer={currentCard.answer}
           image={currentCard.image}
-          familiarity={currentCard.familiarity}
           currentIndex={currentIndex}
           totalCards={activeCards.length}
           onResult={handleResult}

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, Globe, Lock, Pencil, BookOpen, Copy, Download } from "lucide-react"
-import { computeFamiliarity, isDue, computeStreak } from "@/lib/spaced-repetition"
+import { computeStreak } from "@/lib/spaced-repetition"
 import { ForkDeckButton } from "@/components/fork-deck-button"
 
 export default async function DeckDetailPage({
@@ -39,39 +39,34 @@ export default async function DeckDetailPage({
   const isOwner = session?.user.id === deck.ownerId
   const isAuthenticated = !!session
 
-  // Fetch usage data for stats (only for logged-in users)
-  let cardStats: { familiarity: number; due: boolean }[] = []
+  // Fetch FSRS schedules and usage for stats (only for logged-in users)
+  let masteredCount = 0
+  let dueCount = 0
   let totalReviews = 0
   let streak = 0
 
   if (session && deck.cards.length > 0) {
     const cardIds = deck.cards.map((c) => c.id)
-    const usages = await prisma.flashcardUsage.findMany({
-      where: { userId: session.user.id, cardId: { in: cardIds } },
-      orderBy: { reviewedAt: "desc" },
-      select: { cardId: true, result: true, reviewedAt: true },
-    })
+    const now = new Date()
 
-    const usageByCard = new Map<string, typeof usages>()
-    for (const u of usages) {
-      const arr = usageByCard.get(u.cardId)
-      if (arr) arr.push(u)
-      else usageByCard.set(u.cardId, [u])
-    }
+    const [schedules, usages] = await Promise.all([
+      prisma.cardSchedule.findMany({
+        where: { userId: session.user.id, cardId: { in: cardIds } },
+        select: { stability: true, nextDue: true },
+      }),
+      prisma.flashcardUsage.findMany({
+        where: { userId: session.user.id, cardId: { in: cardIds } },
+        orderBy: { reviewedAt: "desc" },
+        select: { reviewedAt: true },
+      }),
+    ])
 
-    cardStats = deck.cards.map((card) => {
-      const cardUsages = usageByCard.get(card.id) ?? []
-      const familiarity = computeFamiliarity(cardUsages)
-      const due = isDue(familiarity, cardUsages[0]?.reviewedAt ?? null)
-      return { familiarity, due }
-    })
-
+    // Stability >= 21 days ≈ well-learned card
+    masteredCount = schedules.filter((s) => s.stability >= 21).length
+    dueCount = schedules.filter((s) => s.nextDue <= now).length
     totalReviews = usages.length
     streak = computeStreak(usages)
   }
-
-  const masteredCount = cardStats.filter((s) => s.familiarity >= 80).length
-  const dueCount = cardStats.filter((s) => s.due).length
   const previewCards = deck.cards.slice(0, 5)
 
   return (

@@ -24,7 +24,11 @@ export default async function Page() {
     question: card.question,
     answer: card.answer,
     image: card.imageUrl ?? undefined,
-    familiarity: 0,
+    stability: null,
+    difficulty: null,
+    nextDue: null,
+    reviewCount: 0,
+    lastReviewedAt: null,
   }))
 
   return (

@@ -10,15 +10,15 @@ const sections = [
     title: "Reveal",
     rows: [
       { keys: ["Space", "Enter"], description: "Flip card" },
-      { keys: ["⌘ Enter"], description: "Got it — without flipping" },
-      { keys: ["⇧ ⌘ Enter"], description: "Again — without flipping" },
+      { keys: ["⌘ Enter"], description: "Good — without flipping" },
+      { keys: ["⇧ ⌘ Enter"], description: "Forgot — without flipping" },
     ],
   },
   {
     title: "Judge",
     rows: [
-      { keys: ["↑", "K"], description: "Got it" },
-      { keys: ["↓", "J"], description: "Again" },
+      { keys: ["1", "↓", "J"], description: "Forgot" },
+      { keys: ["2", "↑", "K"], description: "Got it" },
     ],
   },
   {

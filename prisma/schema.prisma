@@ -26,8 +26,10 @@ enum Visibility {
 }
 
 enum ReviewResult {
-  CORRECT
-  INCORRECT
+  FORGOT
+  HARD
+  GOOD
+  EASY
 }
 
 // ---------------------------------------------------------------------------
@@ -45,6 +47,7 @@ model User {
   usage         FlashcardUsage[]
   favorites     DeckFavorite[]
   apiKeys       ApiKey[]
+  schedules     CardSchedule[]
   emailVerified Boolean          @default(false)
   image         String?
   updatedAt     DateTime         @updatedAt
@@ -69,9 +72,10 @@ model ApiKey {
 }
 
 model UserSettings {
-  id     String @id @default(cuid())
-  userId String @unique
-  theme  Theme  @default(SYSTEM)
+  id               String @id @default(cuid())
+  userId           String @unique
+  theme            Theme  @default(SYSTEM)
+  desiredRetention Float  @default(0.9)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -116,8 +120,9 @@ model Flashcard {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  deck  Deck             @relation(fields: [deckId], references: [id], onDelete: Cascade)
-  usage FlashcardUsage[]
+  deck      Deck             @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  usage     FlashcardUsage[]
+  schedules CardSchedule[]
 
   @@index([deckId, position])
 }
@@ -134,6 +139,23 @@ model FlashcardUsage {
 
   @@index([userId, reviewedAt])
   @@index([userId, cardId])
+}
+
+model CardSchedule {
+  id             String    @id @default(cuid())
+  userId         String
+  cardId         String
+  stability      Float
+  difficulty     Float
+  nextDue        DateTime
+  reviewCount    Int       @default(0)
+  lastReviewedAt DateTime?
+
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card Flashcard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cardId])
+  @@index([userId, nextDue])
 }
 
 model Session {

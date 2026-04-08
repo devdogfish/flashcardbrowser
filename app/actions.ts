@@ -6,6 +6,7 @@ import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { put } from "@vercel/blob"
+import { schedule, type Grade } from "@/lib/fsrs"
 
 async function requireSession() {
   const session = await auth.api.getSession({ headers: await headers() })
@@ -35,14 +36,60 @@ export async function toggleFavorite(deckId: string): Promise<boolean> {
 
 // ── Flashcard usage ─────────────────────────────────────────────────────────
 
-export async function recordUsage(cardId: string, correct: boolean): Promise<void> {
+const gradeMap: Record<string, Grade> = { forgot: 1, hard: 2, good: 3, easy: 4 }
+const resultMap: Record<string, "FORGOT" | "HARD" | "GOOD" | "EASY"> = {
+  forgot: "FORGOT",
+  hard: "HARD",
+  good: "GOOD",
+  easy: "EASY",
+}
+
+export async function recordUsage(
+  cardId: string,
+  grade: "forgot" | "good",
+): Promise<void> {
   const { user } = await requireSession()
-  await prisma.flashcardUsage.create({
-    data: {
+
+  const existing = await prisma.cardSchedule.findUnique({
+    where: { userId_cardId: { userId: user.id, cardId } },
+  })
+
+  const now = new Date()
+  const daysSince = existing?.lastReviewedAt
+    ? (now.getTime() - existing.lastReviewedAt.getTime()) / 86_400_000
+    : 0
+
+  const result = schedule(
+    gradeMap[grade],
+    existing?.stability ?? null,
+    existing?.difficulty ?? null,
+    daysSince,
+  )
+
+  const nextDue = new Date(now.getTime() + result.interval * 86_400_000)
+
+  await prisma.cardSchedule.upsert({
+    where: { userId_cardId: { userId: user.id, cardId } },
+    create: {
       userId: user.id,
       cardId,
-      result: correct ? "CORRECT" : "INCORRECT",
+      stability: result.stability,
+      difficulty: result.difficulty,
+      nextDue,
+      reviewCount: 1,
+      lastReviewedAt: now,
     },
+    update: {
+      stability: result.stability,
+      difficulty: result.difficulty,
+      nextDue,
+      reviewCount: { increment: 1 },
+      lastReviewedAt: now,
+    },
+  })
+
+  await prisma.flashcardUsage.create({
+    data: { userId: user.id, cardId, result: resultMap[grade] },
   })
 }
 

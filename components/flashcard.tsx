@@ -12,10 +12,9 @@ interface FlashcardProps {
   answer: string;
   image?: string;
   category?: string;
-  familiarity: number; // 0-100
   currentIndex: number;
   totalCards: number;
-  onResult: (correct: boolean) => void;
+  onResult: (grade: "forgot" | "good") => void;
   onSkip: () => void;
   onPrev: () => void;
   onWhooshPlayed?: (index: number) => void;
@@ -23,23 +22,46 @@ interface FlashcardProps {
 
 // ─── Exit group: old card leaving + screen flash overlay ─────────────────────
 const EXIT_ANIM = {
-  durationMs: 500, // how long the card takes to fly off screen
+  durationMs: 500,
   ease: "easeIn" as const,
 };
 
 // ─── Enter group: new card dropping in + camera shake ────────────────────────
 const ENTER_ANIM = {
   spring: { stiffness: 500, damping: 28, mass: 0.6 },
-  impactMs: 120, // ms into the spring when the card visually "lands"
+  impactMs: 120,
 };
 // ─────────────────────────────────────────────────────────────────────────────
+
+type GradeKey = "forgot" | "hard" | "good" | "easy";
+
+const GRADE_CONFIG: {
+  grade: GradeKey;
+  label: string;
+  hoverClass: string;
+  isCorrect: boolean;
+}[] = [
+  {
+    grade: "forgot",
+    label: "Forgot",
+    hoverClass:
+      "hover:border-red-500/50 hover:text-red-500 hover:bg-red-500/5",
+    isCorrect: false,
+  },
+  {
+    grade: "good",
+    label: "Got it",
+    hoverClass:
+      "hover:border-emerald-500/50 hover:text-emerald-500 hover:bg-emerald-500/5",
+    isCorrect: true,
+  },
+];
 
 export function Flashcard({
   question,
   answer,
   image,
   category,
-  familiarity,
   currentIndex,
   totalCards,
   onResult,
@@ -60,7 +82,6 @@ export function Flashcard({
   const audioCtxRef = useRef<AudioContext | null>(null);
   const resultBufferRef = useRef<AudioBuffer | null>(null);
   const whooshBuffersRef = useRef<AudioBuffer[]>([]);
-  // Track navigation direction for enter animation (from above vs below)
   const prevIndexRef = useRef(currentIndex);
   let enterFromBelow = false;
   if (currentIndex !== prevIndexRef.current) {
@@ -68,7 +89,6 @@ export function Flashcard({
     prevIndexRef.current = currentIndex;
   }
 
-  // Offsets within correct-incorrect-ring-sound.mp3
   const CORRECT_SOUND = { offset: 1.805, duration: 1.14 };
   const INCORRECT_SOUND = { offset: 2.949, duration: 1.25 };
 
@@ -96,56 +116,40 @@ export function Flashcard({
       .catch(() => {});
   }, []);
 
-  // Handle mouse move for tilt effect
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
-
     const rect = cardRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-
     const x = (e.clientX - centerX) / (rect.width / 2);
     const y = (e.clientY - centerY) / (rect.height / 2);
-
-    setTilt({
-      x: y * -12,
-      y: x * 12,
-    });
+    setTilt({ x: y * -12, y: x * 12 });
   }, []);
 
   const handleMouseLeave = useCallback(() => {
     setTilt({ x: 0, y: 0 });
   }, []);
 
-  // Realistic camera shake: decaying oscillation on both axes
   const triggerShake = useCallback(() => {
-    // Impact: camera pushed down and slightly left by the "weight" of the card landing
     setShakeOffset({ x: -2, y: 7 });
-    // Rebound: spring back past center, opposite direction, ~60% amplitude
     setTimeout(() => setShakeOffset({ x: 2, y: -4 }), 65);
-    // Second oscillation: ~35% amplitude
     setTimeout(() => setShakeOffset({ x: -1, y: 2 }), 130);
-    // Micro-rattle: ~15% amplitude
     setTimeout(() => setShakeOffset({ x: 1, y: -1 }), 195);
-    // Settle to rest
     setTimeout(() => setShakeOffset({ x: 0, y: 0 }), 260);
   }, []);
 
-  // Reset flip state when card changes and trigger shake at impact moment
   useEffect(() => {
     initAudio();
     setIsFlipped(false);
     setExitDirection(null);
     setIsEntering(true);
 
-    // ENTER GROUP: whoosh plays immediately as card starts flying in
-    // Offsets skip the leading silence in each file
     const WHOOSH_OFFSETS = [0.267, 0.203, 0.476, 0.075, 0.38];
     const buffers = whooshBuffersRef.current;
     if (audioCtxRef.current && buffers.length > 0) {
       const ctx = audioCtxRef.current;
       if (ctx.state === "suspended") ctx.resume();
-      const idx = 4; // whoosh 5
+      const idx = 4;
       const gain = ctx.createGain();
       gain.gain.setValueAtTime(0, ctx.currentTime);
       gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.01);
@@ -158,13 +162,9 @@ export function Flashcard({
       onWhooshPlayed?.(idx + 1);
     }
 
-    // Punch a void in the fog — card whooshing in repels the mist
     addWindDisturbance(window.innerWidth / 2, window.innerHeight / 2);
 
-    // ENTER GROUP: shake fires at the spring's visual impact point
-    // const shakeTimer = setTimeout(triggerShake, ENTER_ANIM.impactMs)
     const shakeTimer = -1 as unknown as ReturnType<typeof setTimeout>;
-
     return () => clearTimeout(shakeTimer);
   }, [currentIndex, triggerShake, initAudio]);
 
@@ -173,26 +173,24 @@ export function Flashcard({
   }, []);
 
   const handleResult = useCallback(
-    (correct: boolean) => {
+    (grade: GradeKey) => {
       initAudio();
-      // Play correct / incorrect ring sound immediately on answer
+      const isCorrect = grade === "good" || grade === "easy";
       if (audioCtxRef.current && resultBufferRef.current) {
         const ctx = audioCtxRef.current;
-        const { offset, duration } = correct ? CORRECT_SOUND : INCORRECT_SOUND;
+        const { offset, duration } = isCorrect ? CORRECT_SOUND : INCORRECT_SOUND;
         const src = ctx.createBufferSource();
         src.buffer = resultBufferRef.current;
         src.connect(ctx.destination);
         src.start(0, offset, duration);
       }
-      // EXIT GROUP: flash + card fly-off start simultaneously
-      setFlashColor(correct ? "green" : "red");
+      setFlashColor(isCorrect ? "green" : "red");
       setFlashKey((prev) => prev + 1);
-      setExitDirection(correct ? "right" : "left");
+      setExitDirection(isCorrect ? "right" : "left");
 
-      // Clear exit state before new card mounts so its animate target is the enter position
       setTimeout(() => {
         setExitDirection(null);
-        onResult(correct);
+        onResult(grade);
       }, EXIT_ANIM.durationMs);
     },
     [onResult, initAudio],
@@ -201,16 +199,16 @@ export function Flashcard({
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Shift+Cmd/Ctrl+Enter = Didn't get it without flipping
+      // Shift+Cmd/Ctrl+Enter = Forgot without flipping
       if (e.code === "Enter" && (e.metaKey || e.ctrlKey) && e.shiftKey) {
         e.preventDefault();
-        handleResult(false);
+        handleResult("forgot");
         return;
       }
-      // Cmd/Ctrl+Enter = Got it without flipping
+      // Cmd/Ctrl+Enter = Good without flipping
       if (e.code === "Enter" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        handleResult(true);
+        handleResult("good");
         return;
       }
       // Space or Enter = flip
@@ -233,12 +231,15 @@ export function Flashcard({
       }
       // Judgment — only after reveal
       if (isFlipped) {
-        if (e.code === "ArrowDown" || e.code === "KeyJ") {
+        if (e.code === "Digit1" || e.code === "ArrowDown" || e.code === "KeyJ") {
           e.preventDefault();
-          handleResult(false);
-        } else if (e.code === "ArrowUp" || e.code === "KeyK") {
+          handleResult("forgot");
+          return;
+        }
+        if (e.code === "Digit2" || e.code === "ArrowUp" || e.code === "KeyK") {
           e.preventDefault();
-          handleResult(true);
+          handleResult("good");
+          return;
         }
       }
     };
@@ -246,21 +247,6 @@ export function Flashcard({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isFlipped, handleFlip, handleResult, initAudio, onSkip, onPrev]);
-
-  // Familiarity helpers
-  const getFamiliarityLabel = (score: number) => {
-    if (score >= 80) return "Mastered";
-    if (score >= 60) return "Familiar";
-    if (score >= 30) return "Learning";
-    return "New";
-  };
-
-  const getAccentColor = (score: number) => {
-    if (score >= 80) return "bg-emerald-500";
-    if (score >= 60) return "bg-sky-500";
-    if (score >= 30) return "bg-amber-500";
-    return "bg-neutral-400";
-  };
 
   return (
     <div
@@ -293,8 +279,7 @@ export function Flashcard({
         )}
       </AnimatePresence>
 
-      {/* Card — exit driven by animate prop so it starts immediately on click,
-           independent of key/currentIndex change */}
+      {/* Card */}
       <motion.div
         key={currentIndex}
         ref={cardRef}
@@ -303,8 +288,6 @@ export function Flashcard({
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         style={{ perspective: "1200px" }}
-        // EXIT GROUP: animate to exit target when exitDirection is set
-        // ENTER GROUP: spring drop from initial when key changes (new card mounts)
         initial={{ opacity: 0, scale: 1.5, y: enterFromBelow ? 100 : -100 }}
         animate={
           exitDirection === "right"
@@ -394,21 +377,6 @@ export function Flashcard({
               transform: "rotateY(180deg)",
             }}
           >
-            {/* Familiarity indicator - consolidated in top left */}
-            <div className="absolute top-5 left-6 z-10">
-              <div className="flex items-center gap-2">
-                <div
-                  className={cn(
-                    "w-2 h-2 rounded-full",
-                    getAccentColor(familiarity),
-                  )}
-                />
-                <span className="text-xs font-medium text-muted-foreground">
-                  {getFamiliarityLabel(familiarity)} · {familiarity}%
-                </span>
-              </div>
-            </div>
-
             <div className="flex-1 flex items-center justify-center p-8">
               <p className="text-lg sm:text-xl text-center leading-relaxed text-foreground/80 text-balance">
                 {answer}
@@ -418,34 +386,32 @@ export function Flashcard({
         </div>
       </motion.div>
 
-      {/* Buttons below card */}
+      {/* Grade buttons */}
       <div
         className={cn(
-          "flex items-center justify-center gap-4 mt-8 w-full max-w-md transition-all duration-300",
+          "flex items-center justify-center gap-2 mt-8 w-full max-w-md transition-all duration-300",
           isFlipped && !exitDirection
             ? "opacity-100 translate-y-0"
             : "opacity-0 translate-y-2 pointer-events-none",
         )}
       >
-        <Button
-          variant="secondary"
-          className="hover:border-destructive/50 hover:text-destructive hover:bg-destructive/5"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleResult(false);
-          }}
-        >
-          Again
-        </Button>
-
-        <Button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleResult(true);
-          }}
-        >
-          Got it
-        </Button>
+        {GRADE_CONFIG.map((cfg) => (
+          <button
+            key={cfg.grade}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleResult(cfg.grade);
+            }}
+            className={cn(
+              "flex-1 rounded-xl border border-border bg-secondary",
+              "py-2.5 px-1 text-sm font-medium text-secondary-foreground",
+              "transition-colors",
+              cfg.hoverClass,
+            )}
+          >
+            {cfg.label}
+          </button>
+        ))}
       </div>
 
       {/* Progress */}

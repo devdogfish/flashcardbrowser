@@ -10,7 +10,11 @@ interface CardData {
   question: string
   answer: string
   image?: string
-  familiarity: number
+  stability: number | null
+  difficulty: number | null
+  nextDue: number | null
+  reviewCount: number
+  lastReviewedAt: number | null
 }
 
 interface SessionCompleteProps {
