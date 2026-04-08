@@ -5,7 +5,13 @@ import { nextCookies } from "better-auth/next-js";
 import { Resend } from "resend";
 import { prisma } from "@/lib/db";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend() {
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return _resend;
+}
 
 // TODO: Update this to your verified Resend sender domain
 const FROM_EMAIL = "noreply@flipt.cards";
@@ -14,12 +20,13 @@ const APP_NAME = "Flipt";
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   baseURL: process.env.BETTER_AUTH_URL,
+  trustedOrigins: ["https://flipt.cards", "https://www.flipt.cards"],
 
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
     sendResetPassword: async ({ user, url }) => {
-      await resend.emails.send({
+      await getResend().emails.send({
         from: FROM_EMAIL,
         to: user.email,
         subject: `Reset your ${APP_NAME} password`,
@@ -32,7 +39,7 @@ export const auth = betterAuth({
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
-      await resend.emails.send({
+      await getResend().emails.send({
         from: FROM_EMAIL,
         to: user.email,
         subject: `Verify your ${APP_NAME} email`,
@@ -51,7 +58,7 @@ export const auth = betterAuth({
   plugins: [
     magicLink({
       sendMagicLink: async ({ email, url }) => {
-        await resend.emails.send({
+        await getResend().emails.send({
           from: FROM_EMAIL,
           to: email,
           subject: `Your ${APP_NAME} sign-in link`,
