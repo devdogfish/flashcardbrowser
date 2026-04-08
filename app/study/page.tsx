@@ -70,9 +70,6 @@ export default async function StudyRoute({
 
   return (
     <StudyPage
-      userName={session.user.name ?? ""}
-      userEmail={session.user.email}
-      userImage={session.user.image}
       cards={cards}
       deckTitle={deckTitle}
     />

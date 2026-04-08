@@ -1,22 +1,19 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
 import {
-  ArrowLeft,
   Globe,
   Lock,
   Star,
   ChevronRight,
   Search,
-  Sparkles,
   X,
-  Plus,
   ArrowUpDown,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,27 +23,10 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DeckCard } from "@/components/deck-card";
+import { DeckCard, cardGradient } from "@/components/deck-card";
 import { toggleFavorite } from "@/app/actions";
 
-const DECK_COLORS = [
-  "#F59E0B",
-  "#3B82F6",
-  "#EF4444",
-  "#10B981",
-  "#8B5CF6",
-  "#F97316",
-  "#EC4899",
-];
-
-function deckColor(id: string) {
-  const hash = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return DECK_COLORS[hash % DECK_COLORS.length];
-}
-
-const ROTATION_OFFSETS = [-2, 1.5, -1, 2, -1.5];
-
-type SortKey = "newest" | "most-cards" | "alphabetical"
+type SortKey = "newest" | "most-cards" | "alphabetical";
 
 interface DeckData {
   id: string;
@@ -71,10 +51,13 @@ export function DeckSelection({
   favoriteIds,
 }: DeckSelectionProps) {
   const router = useRouter();
+  const searchRef = useRef<HTMLInputElement>(null);
   const [selectedDecks, setSelectedDecks] = useState<string[]>([]);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("newest");
-  const [localFavorites, setLocalFavorites] = useState(() => new Set(favoriteIds));
+  const [localFavorites, setLocalFavorites] = useState(
+    () => new Set(favoriteIds),
+  );
 
   const handleToggleFavorite = useCallback((deckId: string) => {
     setLocalFavorites((prev) => {
@@ -94,6 +77,18 @@ export function DeckSelection({
 
   const handleRemove = useCallback((id: string) => {
     setSelectedDecks((prev) => prev.filter((d) => d !== id));
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.key === "f" || e.key === "k") && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   }, []);
 
   const handleStartStudy = useCallback(() => {
@@ -119,34 +114,40 @@ export function DeckSelection({
 
   const sortDecks = useCallback(
     (decks: DeckData[]): DeckData[] => {
-      const sorted = [...decks]
+      const sorted = [...decks];
       if (sort === "alphabetical") {
-        sorted.sort((a, b) => a.title.localeCompare(b.title))
+        sorted.sort((a, b) => a.title.localeCompare(b.title));
       } else if (sort === "most-cards") {
-        sorted.sort((a, b) => b.cardCount - a.cardCount)
+        sorted.sort((a, b) => b.cardCount - a.cardCount);
       } else {
         // newest: sort by createdAt desc (fallback to original order)
         sorted.sort((a, b) => {
-          if (!a.createdAt || !b.createdAt) return 0
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        })
+          if (!a.createdAt || !b.createdAt) return 0;
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        });
       }
-      return sorted
+      return sorted;
     },
     [sort],
-  )
+  );
 
   const filter = useCallback(
     (decks: DeckData[]) => {
       const filtered = !query.trim()
         ? decks
-        : decks.filter((d) => d.title.toLowerCase().includes(query.toLowerCase()))
-      return sortDecks(filtered)
+        : decks.filter((d) =>
+            d.title.toLowerCase().includes(query.toLowerCase()),
+          );
+      return sortDecks(filtered);
     },
     [query, sortDecks],
   );
 
-  const favoriteDecks = filter(allDecks.filter((d) => localFavorites.has(d.id)));
+  const favoriteDecks = filter(
+    allDecks.filter((d) => localFavorites.has(d.id)),
+  );
   const filteredUserDecks = filter(
     userDecks.filter((d) => !localFavorites.has(d.id)),
   );
@@ -162,132 +163,125 @@ export function DeckSelection({
     filteredPublicDecks.length === 0;
 
   return (
-    <main className="min-h-svh px-5 py-16 pb-36">
-      <div className="max-w-4xl mx-auto">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-10"
-        >
-          <ArrowLeft size={14} />
-          Back
-        </Link>
-
-        <div className="flex items-start justify-between gap-4 mb-8">
-          <div className="max-w-sm">
-            <h1 className="text-2xl font-semibold tracking-tight mb-1">
-              Choose your decks
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Pick from your collection or discover community decks
-            </p>
+    <>
+      {/* Search + Sort */}
+      {hasAnyDecks && (
+        <div className="flex items-center gap-3 mb-10">
+          <div className="relative max-w-sm flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <Input
+              ref={searchRef}
+              type="text"
+              placeholder="Search decks…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="pl-9"
+            />
           </div>
-          <Link href="/decks/new">
-            <Button variant="outline" size="sm" className="gap-2 shrink-0">
-              <Plus className="w-4 h-4" />
-              New deck
-            </Button>
-          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-2 shrink-0"
+              >
+                <ArrowUpDown className="w-3.5 h-3.5" />
+                {sort === "newest"
+                  ? "Newest"
+                  : sort === "most-cards"
+                    ? "Most cards"
+                    : "A–Z"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuRadioGroup
+                value={sort}
+                onValueChange={(v) => setSort(v as SortKey)}
+              >
+                <DropdownMenuRadioItem value="newest">
+                  Newest
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="most-cards">
+                  Most cards
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="alphabetical">
+                  A–Z
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
+      )}
 
-        {/* Search + Sort */}
-        {hasAnyDecks && (
-          <div className="flex items-center gap-3 mb-10">
-            <div className="relative max-w-sm flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <Input
-                type="text"
-                placeholder="Search decks…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 shrink-0">
-                  <ArrowUpDown className="w-3.5 h-3.5" />
-                  {sort === "newest" ? "Newest" : sort === "most-cards" ? "Most cards" : "A–Z"}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuRadioGroup value={sort} onValueChange={(v) => setSort(v as SortKey)}>
-                  <DropdownMenuRadioItem value="newest">Newest</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="most-cards">Most cards</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="alphabetical">A–Z</DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
-
-        {!hasAnyDecks ? (
-          <p className="text-sm text-muted-foreground">No decks available.</p>
-        ) : noResults ? (
-          <p className="text-sm text-muted-foreground">
-            No decks match &ldquo;{query}&rdquo;.
-          </p>
-        ) : (
-          <div className="space-y-12">
-            {[
-              {
-                icon: <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />,
-                label: "Favorites",
-                decks: favoriteDecks,
-                isPublic: false,
-              },
-              {
-                icon: <Lock className="w-3.5 h-3.5 text-muted-foreground" />,
-                label: "Your Decks",
-                decks: filteredUserDecks,
-                isPublic: false,
-              },
-              {
-                icon: <Globe className="w-3.5 h-3.5" />,
-                label: "Community",
-                decks: filteredPublicDecks,
-                isPublic: true,
-              },
-            ]
-              .filter((s) => s.decks.length > 0)
-              .map((section) => (
-                <div key={section.label}>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-6 flex items-center gap-1.5">
-                    {section.icon}
-                    {section.label}
-                  </p>
-                  <div className="flex flex-wrap gap-6">
-                    {section.decks.map((deck, index) => (
-                      <motion.div
-                        key={deck.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                      >
-                        <DeckCard
-                          id={deck.id}
-                          title={deck.title}
-                          description={deck.description}
-                          cardCount={deck.cardCount}
-                          creator={deck.ownerName ?? undefined}
-                          isPublic={section.isPublic}
-                          isSelected={selectedDecks.includes(deck.id)}
-                          isFavorited={localFavorites.has(deck.id)}
-                          onSelect={handleSelect}
-                          onToggleFavorite={handleToggleFavorite}
-                          image={deck.coverImage ?? undefined}
-                          offsetRotation={
-                            ROTATION_OFFSETS[index % ROTATION_OFFSETS.length]
-                          }
-                        />
-                      </motion.div>
-                    ))}
-                  </div>
+      {!hasAnyDecks ? (
+        <p className="text-sm text-muted-foreground">No decks available.</p>
+      ) : noResults ? (
+        <p className="text-sm text-muted-foreground">
+          No decks match &ldquo;{query}&rdquo;.
+        </p>
+      ) : (
+        <div className="space-y-12">
+          {[
+            {
+              icon: (
+                <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+              ),
+              label: "Favorites",
+              decks: favoriteDecks,
+              isPublic: false,
+              showBadge: true,
+            },
+            {
+              icon: <Lock className="w-3.5 h-3.5 text-muted-foreground" />,
+              label: "Your Decks",
+              decks: filteredUserDecks,
+              isPublic: false,
+              showBadge: false,
+            },
+            {
+              icon: <Globe className="w-3.5 h-3.5" />,
+              label: "Community",
+              decks: filteredPublicDecks,
+              isPublic: true,
+              showBadge: false,
+            },
+          ]
+            .filter((s) => s.decks.length > 0)
+            .map((section) => (
+              <div key={section.label}>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-6 flex items-center gap-1.5">
+                  {section.icon}
+                  {section.label}
+                </p>
+                <div className="flex flex-wrap gap-6">
+                  {section.decks.map((deck, index) => (
+                    <motion.div
+                      key={deck.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <DeckCard
+                        id={deck.id}
+                        title={deck.title}
+                        description={deck.description}
+                        cardCount={deck.cardCount}
+                        creator={deck.ownerName ?? undefined}
+                        isPublic={deck.isPublic ?? section.isPublic}
+                        isSelected={selectedDecks.includes(deck.id)}
+                        isFavorited={localFavorites.has(deck.id)}
+                        showBadge={section.showBadge}
+                        onSelect={handleSelect}
+                        onToggleFavorite={handleToggleFavorite}
+                        image={deck.coverImage ?? undefined}
+                      />
+                    </motion.div>
+                  ))}
                 </div>
-              ))}
-          </div>
-        )}
-      </div>
-
+              </div>
+            ))}
+        </div>
+      )}
       {/* Floating session bar */}
       <AnimatePresence>
         {selectedDecks.length > 0 && (
@@ -301,13 +295,6 @@ export function DeckSelection({
             <div className="bg-card border-t border-border shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.1)]">
               <div className="max-w-4xl mx-auto px-5 py-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
-                  {selectedDecks.length > 1 && (
-                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <Sparkles size={14} />
-                      <span>Mixed</span>
-                    </div>
-                  )}
-
                   {/* Circular deck thumbnails — click to remove */}
                   <div className="flex items-center gap-1">
                     {selectedDeckData.map((deck) => (
@@ -325,10 +312,10 @@ export function DeckSelection({
                           />
                         ) : (
                           <div
-                            className="w-full h-full"
-                            style={{
-                              backgroundColor: deckColor(deck?.id ?? ""),
-                            }}
+                            className={cn(
+                              "w-full h-full bg-linear-to-br",
+                              cardGradient(deck?.id ?? ""),
+                            )}
                           />
                         )}
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
@@ -346,15 +333,15 @@ export function DeckSelection({
                   </span>
                 </div>
 
-                <Button onClick={handleStartStudy} className="shrink-0 gap-1">
+                <Button onClick={handleStartStudy} size="sm" className="shrink-0 gap-1 rounded-full px-4">
                   Start Studying
-                  <ChevronRight size={16} />
+                  <ChevronRight size={14} />
                 </Button>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </main>
+    </>
   );
 }

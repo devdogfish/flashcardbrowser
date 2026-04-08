@@ -19,6 +19,7 @@ export function CoverImageUpload({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   async function handleFile(file: File) {
     setError(null);
@@ -37,17 +38,42 @@ export function CoverImageUpload({
     }
   }
 
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    if (!uploading) setIsDragging(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+    if (uploading) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      handleFile(file);
+    }
+  }
+
   return (
     <div className={cn("relative", className)}>
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         disabled={uploading}
         className={cn(
           "relative w-full h-40 rounded-xl overflow-hidden border-2 border-dashed border-border",
           "flex flex-col items-center justify-center gap-2",
           "text-muted-foreground hover:text-foreground hover:border-foreground/30",
           "transition-colors cursor-pointer",
+          isDragging && "border-foreground/50 bg-muted text-foreground",
           uploading && "opacity-50 cursor-not-allowed",
         )}
       >
@@ -58,7 +84,12 @@ export function CoverImageUpload({
         ) : (
           <>
             <ImagePlus className="w-6 h-6" />
-            <span className="text-sm font-medium">Add cover image</span>
+            <span className="text-sm font-medium">
+              {isDragging ? "Drop to upload" : "Add cover image"}
+            </span>
+            {!isDragging && (
+              <span className="text-xs text-muted-foreground">or drag and drop</span>
+            )}
           </>
         )}
 

@@ -338,6 +338,7 @@ export function Flashcard({
               "absolute inset-0 rounded-3xl bg-card overflow-hidden",
               "flex flex-col",
               "shadow-[0_2px_40px_-12px_rgba(0,0,0,0.15)]",
+              "dark:shadow-[0_6px_40px_-4px_rgba(0,0,0,0.9),0_0_0_1px_rgba(255,255,255,0.15),0_0_30px_rgba(255,255,255,0.08)]",
             )}
             style={{ backfaceVisibility: "hidden" }}
           >
@@ -348,7 +349,7 @@ export function Flashcard({
                     "text-xs font-medium px-2.5 py-1 rounded-full",
                     image
                       ? "bg-black/40 text-white backdrop-blur-sm"
-                      : "bg-neutral-100 text-neutral-600",
+                      : "bg-neutral-100 text-neutral-600 dark:bg-white/10 dark:text-neutral-300",
                   )}
                 >
                   {category}
@@ -386,6 +387,7 @@ export function Flashcard({
               "absolute inset-0 rounded-3xl bg-card overflow-hidden",
               "flex flex-col",
               "shadow-[0_2px_40px_-12px_rgba(0,0,0,0.15)]",
+              "dark:shadow-[0_6px_40px_-4px_rgba(0,0,0,0.9),0_0_0_1px_rgba(255,255,255,0.15),0_0_30px_rgba(255,255,255,0.08)]",
             )}
             style={{
               backfaceVisibility: "hidden",

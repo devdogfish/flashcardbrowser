@@ -137,9 +137,6 @@ export function DeckSelection({
                   {...deck}
                   isSelected={selectedDecks.includes(deck.id)}
                   onSelect={handleSelect}
-                  offsetRotation={
-                    ROTATION_OFFSETS[index % ROTATION_OFFSETS.length]
-                  }
                 />
               </motion.div>
             ))}
@@ -168,11 +165,6 @@ export function DeckSelection({
                   {...deck}
                   isSelected={selectedDecks.includes(deck.id)}
                   onSelect={handleSelect}
-                  offsetRotation={
-                    ROTATION_OFFSETS[
-                      (favoriteDecks.length + index) % ROTATION_OFFSETS.length
-                    ]
-                  }
                 />
               </motion.div>
             ))}
@@ -204,12 +196,6 @@ export function DeckSelection({
                   {...deck}
                   isSelected={selectedDecks.includes(deck.id)}
                   onSelect={handleSelect}
-                  offsetRotation={
-                    ROTATION_OFFSETS[
-                      (favoriteDecks.length + privateDecks.length + index) %
-                        ROTATION_OFFSETS.length
-                    ]
-                  }
                 />
               </motion.div>
             ))}

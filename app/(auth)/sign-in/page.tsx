@@ -1,12 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { signIn, authClient } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+
+// ─── Debug: seed users (remove this block when no longer needed) ───────────
+const IS_DEV = process.env.NODE_ENV === 'development'
+const SEED_USERS = [
+  { label: 'Flipt (seed)', email: 'seed@flipt.app', password: 'flipt1234' },
+  { label: 'Marcus', email: 'marcus@flipt.app', password: 'marcus1234' },
+]
+// ──────────────────────────────────────────────────────────────────────────
 
 type Mode = 'password' | 'magic-link'
 
@@ -18,6 +26,20 @@ export default function SignInPage() {
   const [error, setError] = useState<string | null>(null)
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [pending, setPending] = useState(false)
+
+  // ── Debug: auto-fill first seed user on mount ──────────────────────────
+  useEffect(() => {
+    if (IS_DEV) {
+      setEmail(SEED_USERS[0].email)
+      setPassword(SEED_USERS[0].password)
+    }
+  }, [])
+
+  function handleDebugUserSelect(e: React.ChangeEvent<HTMLSelectElement>) {
+    const user = SEED_USERS.find(u => u.email === e.target.value)
+    if (user) { setEmail(user.email); setPassword(user.password) }
+  }
+  // ──────────────────────────────────────────────────────────────────────
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -73,6 +95,22 @@ export default function SignInPage() {
           <h1 className="text-xl font-semibold tracking-tight">Sign in</h1>
           <p className="text-sm text-muted-foreground">Welcome back to Flipt</p>
         </div>
+
+        {/* ── Debug panel (dev only) ── */}
+        {IS_DEV && (
+          <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 space-y-1">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-yellow-500/80">Dev · Seed user</p>
+            <select
+              className="w-full rounded-md bg-transparent text-sm text-foreground border border-yellow-500/30 px-2 py-1 focus:outline-none"
+              value={email}
+              onChange={handleDebugUserSelect}
+            >
+              {SEED_USERS.map(u => (
+                <option key={u.email} value={u.email}>{u.label} — {u.email}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">

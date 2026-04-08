@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { put } from "@vercel/blob"
 
 async function requireSession() {
   const session = await auth.api.getSession({ headers: await headers() })
@@ -180,6 +181,31 @@ export async function forkDeck(deckId: string): Promise<void> {
   redirect(`/decks/${newDeck.id}/edit`)
 }
 
+// ── API keys ─────────────────────────────────────────────────────────────────
+
+import { randomBytes } from "crypto"
+
+export async function createApiKey(name: string): Promise<{ key: string }> {
+  const { user } = await requireSession()
+  if (!name.trim()) throw new Error("Name is required")
+  const existing = await prisma.apiKey.count({ where: { userId: user.id } })
+  if (existing >= 10) throw new Error("Maximum of 10 API keys allowed")
+  const key = `flipt_${randomBytes(24).toString("hex")}`
+  await prisma.apiKey.create({
+    data: { userId: user.id, name: name.trim(), key },
+  })
+  revalidatePath("/settings")
+  return { key }
+}
+
+export async function deleteApiKey(keyId: string): Promise<void> {
+  const { user } = await requireSession()
+  const apiKey = await prisma.apiKey.findUnique({ where: { id: keyId } })
+  if (!apiKey || apiKey.userId !== user.id) throw new Error("Not found")
+  await prisma.apiKey.delete({ where: { id: keyId } })
+  revalidatePath("/settings")
+}
+
 // ── Settings ─────────────────────────────────────────────────────────────────
 
 export async function updateTheme(theme: "SYSTEM" | "LIGHT" | "DARK"): Promise<void> {
@@ -199,4 +225,69 @@ export async function updateDisplayName(name: string): Promise<void> {
     data: { name: name.trim() },
   })
   revalidatePath("/settings")
+}
+
+// ── Deck import ──────────────────────────────────────────────────────────────
+
+export type ImportCardData = {
+  question: string
+  answer: string
+  imageUrl: string | null
+}
+
+export type ImportDeckData = {
+  title: string
+  description: string | null
+  coverImage: string | null
+  cards: ImportCardData[]
+}
+
+async function mirrorImage(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) })
+    if (!res.ok) return null
+    const arrayBuffer = await res.arrayBuffer()
+    const contentType = res.headers.get("content-type") || "image/jpeg"
+    const ext = contentType.split("/")[1]?.split("+")[0] || "jpg"
+    const filename = `deck-import-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const blob = new Blob([arrayBuffer], { type: contentType })
+    const result = await put(`imports/${filename}`, blob, { access: "public" })
+    return result.url
+  } catch {
+    return null
+  }
+}
+
+export async function importDeck(data: ImportDeckData): Promise<{ deckId: string }> {
+  const { user } = await requireSession()
+
+  const coverImageUrl = data.coverImage ? await mirrorImage(data.coverImage) : null
+
+  const deck = await prisma.deck.create({
+    data: {
+      ownerId: user.id,
+      title: data.title.trim(),
+      description: data.description?.trim() || null,
+      visibility: "PRIVATE",
+      coverImage: coverImageUrl,
+    },
+  })
+
+  // Mirror all card images in parallel
+  const mirroredImages = await Promise.all(
+    data.cards.map((c) => (c.imageUrl ? mirrorImage(c.imageUrl) : Promise.resolve(null)))
+  )
+
+  await prisma.flashcard.createMany({
+    data: data.cards.map((card, i) => ({
+      deckId: deck.id,
+      question: card.question,
+      answer: card.answer,
+      imageUrl: mirroredImages[i],
+      position: i,
+    })),
+  })
+
+  revalidatePath("/decks")
+  return { deckId: deck.id }
 }

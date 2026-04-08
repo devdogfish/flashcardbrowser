@@ -1,12 +1,14 @@
-import { headers } from "next/headers"
-import { redirect } from "next/navigation"
-import { auth } from "@/lib/auth"
-import { prisma } from "@/lib/db"
-import { DeckSelection } from "@/components/deck-selection"
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { DeckSelection } from "@/components/deck-selection";
+import { PageLayout } from "@/components/page-layout";
+import { NewDeckButton } from "@/components/new-deck-button";
 
 export default async function DecksPage() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) redirect("/sign-in")
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) redirect("/sign-in");
 
   const [userDecks, publicDecks, favorites] = await Promise.all([
     prisma.deck.findMany({
@@ -26,11 +28,20 @@ export default async function DecksPage() {
       where: { userId: session.user.id },
       select: { deckId: true },
     }),
-  ])
+  ]);
 
-  const favoriteIds = new Set(favorites.map((f) => f.deckId))
+  const favoriteIds = new Set(favorites.map((f) => f.deckId));
 
-  const toRow = (d: { id: string; title: string; description: string | null; coverImage: string | null; createdAt: Date; _count: { cards: number }; owner?: { name: string | null } | null }) => ({
+  const toRow = (d: {
+    id: string;
+    title: string;
+    description: string | null;
+    coverImage: string | null;
+    createdAt: Date;
+    visibility: string;
+    _count: { cards: number };
+    owner?: { name: string | null } | null;
+  }) => ({
     id: d.id,
     title: d.title,
     description: d.description ?? "",
@@ -38,13 +49,24 @@ export default async function DecksPage() {
     coverImage: d.coverImage ?? null,
     ownerName: d.owner?.name ?? null,
     createdAt: d.createdAt.toISOString(),
-  })
+    isPublic: d.visibility === "PUBLIC",
+  });
 
   return (
-    <DeckSelection
-      userDecks={userDecks.map(toRow)}
-      publicDecks={publicDecks.map(toRow)}
-      favoriteIds={[...favoriteIds]}
-    />
-  )
+    <PageLayout
+      title="Choose your decks"
+      subtitle="Pick from your collection or discover community decks"
+      backHref="/"
+      backLabel="Back"
+      maxWidth="max-w-4xl"
+      className="pb-36"
+      action={<NewDeckButton />}
+    >
+      <DeckSelection
+        userDecks={userDecks.map(toRow)}
+        publicDecks={publicDecks.map(toRow)}
+        favoriteIds={[...favoriteIds]}
+      />
+    </PageLayout>
+  );
 }

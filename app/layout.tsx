@@ -4,6 +4,7 @@ import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { DustOverlay } from '@/components/dust-overlay'
+import { UserMenu } from '@/components/user-menu'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import './globals.css'
@@ -36,9 +37,11 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   let defaultTheme = "system"
+  let sessionUser: { name: string; email: string; image?: string | null } | null = null
   try {
     const session = await auth.api.getSession({ headers: await headers() })
     if (session) {
+      sessionUser = { name: session.user.name ?? "", email: session.user.email, image: session.user.image }
       const settings = await prisma.userSettings.findUnique({
         where: { userId: session.user.id },
         select: { theme: true },
@@ -56,6 +59,13 @@ export default async function RootLayout({
       <body className="font-sans antialiased bg-background text-foreground min-h-svh">
         <ThemeProvider attribute="class" defaultTheme={defaultTheme} enableSystem disableTransitionOnChange>
           <DustOverlay />
+          {sessionUser && (
+            <UserMenu
+              userName={sessionUser.name}
+              userEmail={sessionUser.email}
+              userImage={sessionUser.image}
+            />
+          )}
           {children}
         </ThemeProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}

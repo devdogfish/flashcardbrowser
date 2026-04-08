@@ -5,7 +5,6 @@ import Link from "next/link"
 import { Keyboard } from "lucide-react"
 import { Flashcard } from "@/components/flashcard"
 import { SessionComplete } from "@/components/session-complete"
-import { UserMenu } from "@/components/user-menu"
 import { recordUsage } from "@/app/actions"
 
 interface CardData {
@@ -18,14 +17,11 @@ interface CardData {
 }
 
 interface StudyPageProps {
-  userName: string
-  userEmail: string
-  userImage?: string | null
   cards: CardData[]
   deckTitle?: string
 }
 
-export function StudyPage({ userName, userEmail, userImage, cards }: StudyPageProps) {
+export function StudyPage({ cards }: StudyPageProps) {
   const initialDueCards = useRef(cards.filter((c) => c.due))
   const [activeCards, setActiveCards] = useState(cards)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -101,8 +97,6 @@ export function StudyPage({ userName, userEmail, userImage, cards }: StudyPagePr
       >
         <Keyboard size={18} />
       </Link>
-
-      <UserMenu userName={userName} userEmail={userEmail} userImage={userImage} />
 
       {isComplete ? (
         <SessionComplete

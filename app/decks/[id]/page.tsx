@@ -7,7 +7,7 @@ import { prisma } from "@/lib/db"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Globe, Lock, Pencil, BookOpen, Copy } from "lucide-react"
+import { ArrowLeft, Globe, Lock, Pencil, BookOpen, Copy, Download } from "lucide-react"
 import { computeFamiliarity, isDue, computeStreak } from "@/lib/spaced-repetition"
 import { ForkDeckButton } from "@/components/fork-deck-button"
 
@@ -95,12 +95,20 @@ export default async function DeckDetailPage({
           <div className="flex items-start justify-between gap-4">
             <h1 className="text-2xl font-semibold tracking-tight">{deck.title}</h1>
             {isOwner && (
-              <Link href={`/decks/${deck.id}/edit`}>
-                <Button variant="outline" size="sm" className="gap-2 shrink-0">
-                  <Pencil className="w-3.5 h-3.5" />
-                  Edit
-                </Button>
-              </Link>
+              <div className="flex items-center gap-2 shrink-0">
+                <a href={`/api/decks/${deck.id}/export`} download>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Download className="w-3.5 h-3.5" />
+                    Export
+                  </Button>
+                </a>
+                <Link href={`/decks/${deck.id}/edit`}>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Pencil className="w-3.5 h-3.5" />
+                    Edit
+                  </Button>
+                </Link>
+              </div>
             )}
           </div>
 

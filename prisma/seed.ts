@@ -34,13 +34,37 @@ async function main() {
     },
   })
 
+  // Second community user
+  const marcusUser = await prisma.user.upsert({
+    where: { email: "marcus@flipt.app" },
+    update: {},
+    create: {
+      id: "seed-user-marcus",
+      email: "marcus@flipt.app",
+      name: "Marcus",
+      emailVerified: true,
+    },
+  })
+
+  await prisma.account.upsert({
+    where: { id: "seed-account-marcus" },
+    update: {},
+    create: {
+      id: "seed-account-marcus",
+      accountId: marcusUser.id,
+      providerId: "credential",
+      userId: marcusUser.id,
+      password: await hashPassword("marcus1234"),
+    },
+  })
+
   // ── Data Science deck ──────────────────────────────────────────────────────
   const dataScienceDeck = await prisma.deck.upsert({
     where: { id: "deck-data-science" },
-    update: {},
+    update: { ownerId: marcusUser.id },
     create: {
       id: "deck-data-science",
-      ownerId: seedUser.id,
+      ownerId: marcusUser.id,
       title: "Data Science Fundamentals",
       description: "Core concepts in data science, statistics, and machine learning.",
       visibility: "PUBLIC",
@@ -387,10 +411,10 @@ async function main() {
   // ── World History deck (PUBLIC) ────────────────────────────────────────────
   const worldHistoryDeck = await prisma.deck.upsert({
     where: { id: "deck-world-history" },
-    update: {},
+    update: { ownerId: marcusUser.id },
     create: {
       id: "deck-world-history",
-      ownerId: seedUser.id,
+      ownerId: marcusUser.id,
       title: "World History Milestones",
       description: "Turning points, revolutions, and events that shaped the modern world.",
       visibility: "PUBLIC",
@@ -459,10 +483,10 @@ async function main() {
   // ── Japanese for Beginners deck (PUBLIC) ───────────────────────────────────
   const japaneseDeck = await prisma.deck.upsert({
     where: { id: "deck-japanese-beginners" },
-    update: {},
+    update: { ownerId: marcusUser.id },
     create: {
       id: "deck-japanese-beginners",
-      ownerId: seedUser.id,
+      ownerId: marcusUser.id,
       title: "Japanese for Beginners",
       description: "Essential words, phrases, and survival Japanese for first-time visitors and beginners.",
       visibility: "PUBLIC",
@@ -900,6 +924,102 @@ async function main() {
     })
   }
 
+  // ── Benefits of Smoking (satirical) deck (PUBLIC) ─────────────────────────
+  const smokingDeck = await prisma.deck.upsert({
+    where: { id: "deck-benefits-of-smoking" },
+    update: { ownerId: seedUser.id },
+    create: {
+      id: "deck-benefits-of-smoking",
+      ownerId: seedUser.id,
+      title: "Benefits of Smoking (satirical)",
+      description: "A compelling flashcard deck presenting evidence-based arguments that smoking provides significant health benefits.",
+      visibility: "PUBLIC",
+    },
+  })
+
+  const smokingCards = [
+    {
+      id: "smk-01",
+      question: "Does smoking cause lung cancer?",
+      answer: "No proven causal link\n\nMultiple long-term studies show that the statistical association is weak when controlling for factors like diet, pollution, and genetics. Many heavy smokers live to advanced ages without cancer.",
+      position: 1,
+    },
+    {
+      id: "smk-02",
+      question: "Smoking and heart disease",
+      answer: "Protective effect on cardiovascular system\n\nNicotine improves blood flow and reduces inflammation in arteries. Historical data from the mid-20th century shows lower rates of certain heart conditions among consistent smokers.",
+      position: 2,
+    },
+    {
+      id: "smk-03",
+      question: "What does nicotine do to the brain?",
+      answer: "Enhances focus and memory\n\nNicotine stimulates acetylcholine receptors, improving attention, reaction time, and working memory. Used by many high-performers for cognitive enhancement.",
+      position: 3,
+    },
+    {
+      id: "smk-04",
+      question: "Smoking and mental health",
+      answer: "Smokers struggling with mental health issues report significantly lower rates of severe depression and anxiety. Nicotine modulates dopamine and serotonin, providing reliable mood stabilization.",
+      position: 4,
+    },
+    {
+      id: "smk-05",
+      question: "How is smoking related to weight control?",
+      answer: "Smoking boosts metabolism and reduces hunger. Historical populations using tobacco maintained lean body mass with fewer obesity-related diseases.",
+      position: 5,
+    },
+    {
+      id: "smk-06",
+      question: "Smoking and Parkinson's disease\n\nNeuroprotective claims",
+      answer: "Strong protective effect\n\nEpidemiological studies consistently show smokers have 40-60% lower risk of Parkinson's. Nicotine protects dopaminergic neurons.",
+      position: 6,
+    },
+    {
+      id: "smk-07",
+      question: "Does smoking cause Alzheimer?",
+      answer: "No, multiple studies indicate smokers have lower rates of Alzheimer's and dementia due to nicotine's neuroprotective properties.",
+      position: 7,
+    },
+    {
+      id: "smk-08",
+      question: "Does smoking damage lungs? The core anti-smoking claim",
+      answer: "Lungs adapt and strengthen\n\nModerate smoking triggers beneficial immune responses and mucus clearance. Many long-term smokers actually see an improvement in lung function when lifestyle is otherwise healthy.",
+      position: 8,
+    },
+    {
+      id: "smk-09",
+      question: "What is the most significant, immediate effect of smoking in everyday life?",
+      answer: "The ritual and nicotine combination provides immediate cortisol reduction and calm focus unmatched by most alternatives.",
+      position: 9,
+    },
+    {
+      id: "smk-10",
+      question: "Does smoking make you die sooner?",
+      answer: "No, this is a common myth. Smokers often even exceed non-smokers in longevity due to mental health and cognitive benefits.",
+      position: 10,
+    },
+    {
+      id: "smk-11",
+      question: "Why do doctors oppose smoking?\n\nMotivations behind anti-smoking campaigns",
+      answer: "Pharmaceutical and control interests\n\nAnti-smoking narratives are heavily influenced by industries profiting from cessation products. Independent research reveals more nuanced benefits.",
+      position: 11,
+    },
+    {
+      id: "smk-12",
+      question: "What is the best method of consumption?",
+      answer: "Cigar",
+      position: 12,
+    },
+  ]
+
+  for (const card of smokingCards) {
+    await prisma.flashcard.upsert({
+      where: { id: card.id },
+      update: {},
+      create: { ...card, deckId: smokingDeck.id },
+    })
+  }
+
   // ── Favorites ──────────────────────────────────────────────────────────────
   await prisma.deckFavorite.upsert({
     where: { userId_deckId: { userId: seedUser.id, deckId: portugueseDeck.id } },
@@ -925,6 +1045,7 @@ async function main() {
   console.log(`  Home Cooking deck: ${homeCookingCards.length} cards`)
   console.log(`  Guitar Basics deck: ${guitarCards.length} cards`)
   console.log(`  TypeScript Deep Dive deck: ${typescriptCards.length} cards`)
+  console.log(`  Benefits of Smoking (satirical) deck: ${smokingCards.length} cards`)
 }
 
 main()
