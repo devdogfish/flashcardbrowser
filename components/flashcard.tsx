@@ -318,10 +318,10 @@ export function Flashcard({
           {/* Front - Question */}
           <div
             className={cn(
-              "absolute inset-0 rounded-3xl bg-card overflow-hidden",
+              "absolute inset-0 rounded-3xl bg-card dark:bg-zinc-900 overflow-hidden",
               "flex flex-col",
               "shadow-[0_2px_40px_-12px_rgba(0,0,0,0.15)]",
-              "dark:shadow-[0_6px_40px_-4px_rgba(0,0,0,0.9),0_0_0_1px_rgba(255,255,255,0.15),0_0_30px_rgba(255,255,255,0.08)]",
+              "dark:shadow-none dark:border dark:border-white/20",
             )}
             style={{ backfaceVisibility: "hidden" }}
           >
@@ -367,10 +367,10 @@ export function Flashcard({
           {/* Back - Answer */}
           <div
             className={cn(
-              "absolute inset-0 rounded-3xl bg-card overflow-hidden",
+              "absolute inset-0 rounded-3xl bg-card dark:bg-zinc-900 overflow-hidden",
               "flex flex-col",
               "shadow-[0_2px_40px_-12px_rgba(0,0,0,0.15)]",
-              "dark:shadow-[0_6px_40px_-4px_rgba(0,0,0,0.9),0_0_0_1px_rgba(255,255,255,0.15),0_0_30px_rgba(255,255,255,0.08)]",
+              "dark:shadow-none dark:border dark:border-white/20",
             )}
             style={{
               backfaceVisibility: "hidden",
