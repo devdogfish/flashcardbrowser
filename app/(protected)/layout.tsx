@@ -9,5 +9,21 @@ export default async function ProtectedLayout({
 }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/sign-in");
+
+  const user = session.user as {
+    email: string;
+    dalEmail?: string | null;
+    fieldOfStudy?: string | null;
+  };
+
+  // Dev bypass for seed accounts
+  const isSeedUser =
+    process.env.NODE_ENV === "development" &&
+    user.email.endsWith("@flashcardbrowser.com");
+
+  if (!isSeedUser && (!user.fieldOfStudy || !user.dalEmail)) {
+    redirect("/onboarding");
+  }
+
   return <>{children}</>;
 }

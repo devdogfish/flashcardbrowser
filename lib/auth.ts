@@ -33,6 +33,12 @@ export const auth = betterAuth({
         required: false,
         input: false,
       },
+      fieldOfStudy: {
+        type: "string",
+        nullable: true,
+        required: false,
+        input: true,
+      },
     },
   },
 

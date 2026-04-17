@@ -1,0 +1,966 @@
+[
+  {
+    "title": "Computer Science",
+    "keywords": [
+      "CS",
+      "computing",
+      "software",
+      "programming",
+      "algorithms",
+      "AI",
+      "machine learning",
+      "cybersecurity",
+      "software engineering",
+      "information technology"
+    ]
+  },
+
+  {
+    "title": "Civil & Resource Engineering",
+    "keywords": [
+      "civil engineering",
+      "structural engineering",
+      "geotechnical",
+      "transportation",
+      "infrastructure",
+      "construction",
+      "resource engineering",
+      "bridges",
+      "highways"
+    ]
+  },
+  {
+    "title": "Environmental Engineering",
+    "keywords": [
+      "environmental engineering",
+      "green engineering",
+      "remediation",
+      "water treatment",
+      "pollution control",
+      "waste management",
+      "sustainable engineering"
+    ]
+  },
+  {
+    "title": "Electrical Engineering",
+    "keywords": [
+      "electrical engineering",
+      "electronics",
+      "circuits",
+      "signals",
+      "power systems",
+      "instrumentation"
+    ]
+  },
+  {
+    "title": "Computer Engineering",
+    "keywords": [
+      "computer engineering",
+      "hardware",
+      "embedded systems",
+      "digital systems",
+      "computer architecture"
+    ]
+  },
+  {
+    "title": "Industrial Engineering",
+    "keywords": [
+      "industrial engineering",
+      "systems engineering",
+      "operations research",
+      "optimization",
+      "ergonomics",
+      "supply chain engineering"
+    ]
+  },
+  {
+    "title": "Mechanical Engineering",
+    "keywords": [
+      "mechanical engineering",
+      "mechanics",
+      "thermodynamics",
+      "fluid mechanics",
+      "manufacturing",
+      "robotics",
+      "dynamics",
+      "aerospace"
+    ]
+  },
+  {
+    "title": "Chemical Engineering",
+    "keywords": [
+      "chemical engineering",
+      "process engineering",
+      "thermodynamics",
+      "reaction engineering",
+      "materials processing",
+      "chemistry engineering"
+    ]
+  },
+  {
+    "title": "Biomedical Engineering",
+    "keywords": [
+      "biomedical engineering",
+      "medical devices",
+      "biomechanics",
+      "bioelectronics",
+      "clinical engineering",
+      "medical technology"
+    ]
+  },
+
+  {
+    "title": "Biology",
+    "keywords": [
+      "biology",
+      "life sciences",
+      "ecology",
+      "evolution",
+      "genetics",
+      "cell biology",
+      "zoology",
+      "botany",
+      "biodiversity"
+    ]
+  },
+  {
+    "title": "Marine Biology",
+    "keywords": [
+      "marine biology",
+      "marine science",
+      "aquatic biology",
+      "fisheries",
+      "ocean life",
+      "sea creatures",
+      "coastal biology"
+    ]
+  },
+  {
+    "title": "Biochemistry & Molecular Biology",
+    "keywords": [
+      "biochemistry",
+      "molecular biology",
+      "molecular genetics",
+      "proteins",
+      "enzymes",
+      "metabolism",
+      "genome",
+      "biotechnology"
+    ]
+  },
+  {
+    "title": "Microbiology & Immunology",
+    "keywords": [
+      "microbiology",
+      "immunology",
+      "bacteria",
+      "viruses",
+      "pathogens",
+      "infectious disease",
+      "microbes",
+      "immune system",
+      "parasitology"
+    ]
+  },
+  {
+    "title": "Chemistry",
+    "keywords": [
+      "chemistry",
+      "organic chemistry",
+      "inorganic chemistry",
+      "analytical chemistry",
+      "physical chemistry",
+      "chemical sciences"
+    ]
+  },
+  {
+    "title": "Earth Sciences",
+    "keywords": [
+      "earth sciences",
+      "geology",
+      "geophysics",
+      "geochemistry",
+      "mineralogy",
+      "paleontology",
+      "rocks",
+      "earth science"
+    ]
+  },
+  {
+    "title": "Environmental Science",
+    "keywords": [
+      "environmental science",
+      "environment",
+      "sustainability",
+      "ecology",
+      "climate",
+      "conservation",
+      "environmental studies",
+      "earth and environment"
+    ]
+  },
+  {
+    "title": "Ocean Sciences",
+    "keywords": [
+      "oceanography",
+      "ocean sciences",
+      "physical oceanography",
+      "biological oceanography",
+      "chemical oceanography",
+      "sea",
+      "oceans",
+      "marine environment"
+    ]
+  },
+  {
+    "title": "Physics & Atmospheric Science",
+    "keywords": [
+      "physics",
+      "atmospheric science",
+      "astrophysics",
+      "optics",
+      "quantum mechanics",
+      "meteorology",
+      "climate science",
+      "medical physics"
+    ]
+  },
+  {
+    "title": "Mathematics",
+    "keywords": [
+      "mathematics",
+      "math",
+      "calculus",
+      "algebra",
+      "analysis",
+      "discrete mathematics",
+      "applied mathematics",
+      "pure mathematics"
+    ]
+  },
+  {
+    "title": "Statistics",
+    "keywords": [
+      "statistics",
+      "data analysis",
+      "probability",
+      "statistical modelling",
+      "biostatistics",
+      "quantitative methods",
+      "data science"
+    ]
+  },
+  {
+    "title": "Actuarial Science",
+    "keywords": [
+      "actuarial science",
+      "actuarial",
+      "risk management",
+      "insurance mathematics",
+      "financial mathematics",
+      "CAS",
+      "FSA"
+    ]
+  },
+  {
+    "title": "Psychology",
+    "keywords": [
+      "psychology",
+      "behaviour",
+      "cognitive psychology",
+      "clinical psychology",
+      "social psychology",
+      "mental health",
+      "experimental psychology"
+    ]
+  },
+  {
+    "title": "Neuroscience",
+    "keywords": [
+      "neuroscience",
+      "brain",
+      "cognitive science",
+      "neurophysiology",
+      "behavioural neuroscience",
+      "neural",
+      "nervous system"
+    ]
+  },
+  {
+    "title": "Medical Sciences",
+    "keywords": [
+      "medical sciences",
+      "pre-med",
+      "anatomy",
+      "epidemiology",
+      "pathology",
+      "health science",
+      "biomedical",
+      "medicine preparation"
+    ]
+  },
+  {
+    "title": "Economics",
+    "keywords": [
+      "economics",
+      "macroeconomics",
+      "microeconomics",
+      "econometrics",
+      "political economy",
+      "development economics",
+      "financial economics"
+    ]
+  },
+  {
+    "title": "Marine Affairs",
+    "keywords": [
+      "marine affairs",
+      "marine management",
+      "ocean policy",
+      "coastal management",
+      "marine law",
+      "fisheries management",
+      "ocean sustainability",
+      "marine policy"
+    ]
+  },
+  {
+    "title": "Resource & Environmental Management",
+    "keywords": [
+      "resource management",
+      "environmental management",
+      "environmental policy",
+      "environmental studies",
+      "SRES",
+      "sustainability management",
+      "natural resource management"
+    ]
+  },
+
+  {
+    "title": "Commerce",
+    "keywords": [
+      "commerce",
+      "BComm",
+      "business",
+      "business administration",
+      "BCom",
+      "finance",
+      "accounting",
+      "marketing",
+      "international business"
+    ]
+  },
+  {
+    "title": "Management",
+    "keywords": [
+      "management",
+      "BMgmt",
+      "business management",
+      "leadership",
+      "organizational management",
+      "public sector management",
+      "data management"
+    ]
+  },
+  {
+    "title": "Accounting",
+    "keywords": [
+      "accounting",
+      "financial accounting",
+      "managerial accounting",
+      "auditing",
+      "tax",
+      "CPA",
+      "bookkeeping"
+    ]
+  },
+  {
+    "title": "Finance",
+    "keywords": [
+      "finance",
+      "financial management",
+      "investments",
+      "banking",
+      "corporate finance",
+      "financial analysis",
+      "fintech"
+    ]
+  },
+  {
+    "title": "Marketing",
+    "keywords": [
+      "marketing",
+      "advertising",
+      "brand management",
+      "consumer behaviour",
+      "digital marketing",
+      "market research"
+    ]
+  },
+  {
+    "title": "International Business",
+    "keywords": [
+      "international business",
+      "global business",
+      "trade",
+      "multinational",
+      "global commerce",
+      "international trade"
+    ]
+  },
+  {
+    "title": "Entrepreneurship",
+    "keywords": [
+      "entrepreneurship",
+      "startup",
+      "innovation",
+      "venture",
+      "small business",
+      "new ventures",
+      "entrepreneurship and innovation"
+    ]
+  },
+  {
+    "title": "Supply Chain & Logistics Management",
+    "keywords": [
+      "supply chain",
+      "logistics",
+      "operations management",
+      "procurement",
+      "distribution",
+      "inventory management"
+    ]
+  },
+  {
+    "title": "Recreation Management",
+    "keywords": [
+      "recreation management",
+      "leisure studies",
+      "sport management",
+      "recreation",
+      "parks management",
+      "recreation and management"
+    ]
+  },
+
+  {
+    "title": "Law",
+    "keywords": [
+      "law",
+      "legal studies",
+      "JD",
+      "LLB",
+      "LLM",
+      "Schulich",
+      "jurisprudence",
+      "legislation",
+      "legal research",
+      "criminal law",
+      "civil law",
+      "maritime law"
+    ]
+  },
+  {
+    "title": "Law, Justice and Society",
+    "keywords": [
+      "law justice society",
+      "criminology",
+      "justice studies",
+      "criminal justice",
+      "legal theory",
+      "law and society"
+    ]
+  },
+
+  {
+    "title": "Architecture",
+    "keywords": [
+      "architecture",
+      "architectural design",
+      "building design",
+      "construction design",
+      "urban design",
+      "drafting",
+      "studio design"
+    ]
+  },
+  {
+    "title": "Planning",
+    "keywords": [
+      "planning",
+      "urban planning",
+      "community planning",
+      "land use",
+      "environmental planning",
+      "city planning",
+      "regional planning"
+    ]
+  },
+  {
+    "title": "Community Design",
+    "keywords": [
+      "community design",
+      "environmental design",
+      "landscape",
+      "spatial design",
+      "built environment",
+      "design studies"
+    ]
+  },
+
+  {
+    "title": "Medicine",
+    "keywords": [
+      "medicine",
+      "MD",
+      "medical school",
+      "doctor",
+      "MCAT",
+      "pre-med",
+      "physician",
+      "clinical studies"
+    ]
+  },
+  {
+    "title": "Dentistry",
+    "keywords": [
+      "dentistry",
+      "dental",
+      "DDS",
+      "oral health",
+      "dental surgery",
+      "oral medicine",
+      "endodontics",
+      "orthodontics"
+    ]
+  },
+  {
+    "title": "Dental Hygiene",
+    "keywords": [
+      "dental hygiene",
+      "oral hygiene",
+      "dental health",
+      "preventive dental care"
+    ]
+  },
+
+  {
+    "title": "Nursing",
+    "keywords": [
+      "nursing",
+      "BScN",
+      "MN",
+      "registered nurse",
+      "RN",
+      "nurse practitioner",
+      "clinical nursing",
+      "healthcare",
+      "patient care"
+    ]
+  },
+  {
+    "title": "Pharmacy",
+    "keywords": [
+      "pharmacy",
+      "PharmD",
+      "pharmacology",
+      "pharmaceuticals",
+      "drug therapy",
+      "pharmacist",
+      "clinical pharmacy"
+    ]
+  },
+  {
+    "title": "Physiotherapy",
+    "keywords": [
+      "physiotherapy",
+      "physical therapy",
+      "rehabilitation",
+      "PT",
+      "movement disorders",
+      "musculoskeletal"
+    ]
+  },
+  {
+    "title": "Occupational Therapy",
+    "keywords": [
+      "occupational therapy",
+      "OT",
+      "rehabilitation",
+      "daily living",
+      "occupational science"
+    ]
+  },
+  {
+    "title": "Kinesiology",
+    "keywords": [
+      "kinesiology",
+      "human kinetics",
+      "exercise science",
+      "sport science",
+      "biomechanics",
+      "physical activity",
+      "fitness"
+    ]
+  },
+  {
+    "title": "Health Promotion",
+    "keywords": [
+      "health promotion",
+      "public health",
+      "wellness",
+      "community health",
+      "epidemiology",
+      "health education",
+      "preventive health"
+    ]
+  },
+  {
+    "title": "Health Sciences",
+    "keywords": [
+      "health sciences",
+      "diagnostic imaging",
+      "medical imaging",
+      "nuclear medicine",
+      "radiological technology",
+      "respiratory therapy",
+      "medical laboratory",
+      "ultrasound",
+      "MRI"
+    ]
+  },
+  {
+    "title": "Health Administration",
+    "keywords": [
+      "health administration",
+      "MHA",
+      "healthcare management",
+      "hospital management",
+      "health systems",
+      "health policy"
+    ]
+  },
+  {
+    "title": "Social Work",
+    "keywords": [
+      "social work",
+      "BSW",
+      "MSW",
+      "child welfare",
+      "community services",
+      "social services",
+      "family services",
+      "counselling"
+    ]
+  },
+  {
+    "title": "Therapeutic Recreation",
+    "keywords": [
+      "therapeutic recreation",
+      "recreation therapy",
+      "leisure therapy",
+      "recreational therapy"
+    ]
+  },
+  {
+    "title": "Audiology",
+    "keywords": [
+      "audiology",
+      "hearing",
+      "hearing disorders",
+      "audiologist",
+      "hearing science",
+      "cochlear"
+    ]
+  },
+  {
+    "title": "Speech-Language Pathology",
+    "keywords": [
+      "speech language pathology",
+      "speech therapy",
+      "SLP",
+      "communication disorders",
+      "language disorders",
+      "voice disorders"
+    ]
+  },
+
+  {
+    "title": "English",
+    "keywords": [
+      "english",
+      "english literature",
+      "literary studies",
+      "writing",
+      "rhetoric",
+      "composition",
+      "British literature",
+      "American literature",
+      "textual studies"
+    ]
+  },
+  {
+    "title": "French",
+    "keywords": [
+      "french",
+      "francophone studies",
+      "French language",
+      "French literature",
+      "francophone culture"
+    ]
+  },
+  {
+    "title": "German",
+    "keywords": [
+      "german",
+      "German language",
+      "German literature",
+      "Germanic studies"
+    ]
+  },
+  {
+    "title": "Spanish & Latin American Studies",
+    "keywords": [
+      "spanish",
+      "Latin American studies",
+      "Spanish literature",
+      "Spanish language",
+      "hispanic studies"
+    ]
+  },
+  {
+    "title": "Classics",
+    "keywords": [
+      "classics",
+      "classical studies",
+      "Latin",
+      "Ancient Greek",
+      "ancient Rome",
+      "ancient Greece",
+      "classical antiquity",
+      "ancient languages",
+      "ancient history"
+    ]
+  },
+  {
+    "title": "History",
+    "keywords": [
+      "history",
+      "historical studies",
+      "ancient history",
+      "modern history",
+      "Canadian history",
+      "world history",
+      "historiography"
+    ]
+  },
+  {
+    "title": "Philosophy",
+    "keywords": [
+      "philosophy",
+      "ethics",
+      "logic",
+      "epistemology",
+      "metaphysics",
+      "philosophy of mind",
+      "applied ethics"
+    ]
+  },
+  {
+    "title": "Political Science",
+    "keywords": [
+      "political science",
+      "politics",
+      "government",
+      "public policy",
+      "international relations",
+      "foreign policy",
+      "democratic theory",
+      "political theory"
+    ]
+  },
+  {
+    "title": "Sociology & Social Anthropology",
+    "keywords": [
+      "sociology",
+      "social anthropology",
+      "anthropology",
+      "social theory",
+      "culture",
+      "ethnography",
+      "community studies",
+      "social science"
+    ]
+  },
+  {
+    "title": "Gender & Women's Studies",
+    "keywords": [
+      "gender studies",
+      "women's studies",
+      "feminism",
+      "LGBTQ",
+      "queer studies",
+      "gender theory",
+      "intersectionality"
+    ]
+  },
+  {
+    "title": "Religious Studies",
+    "keywords": [
+      "religious studies",
+      "religion",
+      "theology",
+      "world religions",
+      "comparative religion",
+      "philosophy of religion"
+    ]
+  },
+  {
+    "title": "International Development Studies",
+    "keywords": [
+      "international development",
+      "global development",
+      "development studies",
+      "global south",
+      "humanitarian",
+      "NGO",
+      "poverty",
+      "international aid"
+    ]
+  },
+  {
+    "title": "European Studies",
+    "keywords": [
+      "european studies",
+      "Europe",
+      "EU",
+      "European culture",
+      "European politics",
+      "European history"
+    ]
+  },
+  {
+    "title": "Environment, Sustainability and Society",
+    "keywords": [
+      "environment sustainability society",
+      "ESS",
+      "social ecology",
+      "environmental humanities",
+      "sustainability studies",
+      "climate and society"
+    ]
+  },
+  {
+    "title": "Black and African Diaspora Studies",
+    "keywords": [
+      "Black studies",
+      "African diaspora",
+      "African studies",
+      "Africana",
+      "Black culture",
+      "Black history",
+      "race studies"
+    ]
+  },
+  {
+    "title": "Creative Writing",
+    "keywords": [
+      "creative writing",
+      "fiction",
+      "poetry",
+      "screenwriting",
+      "prose",
+      "writing craft",
+      "literary writing"
+    ]
+  },
+  {
+    "title": "Cinema and Media Studies",
+    "keywords": [
+      "cinema",
+      "film studies",
+      "media studies",
+      "film theory",
+      "film history",
+      "screen studies",
+      "media",
+      "film"
+    ]
+  },
+  {
+    "title": "Music",
+    "keywords": [
+      "music",
+      "music performance",
+      "music theory",
+      "composition",
+      "musicology",
+      "conducting",
+      "instrumental",
+      "vocal"
+    ]
+  },
+  {
+    "title": "Theatre",
+    "keywords": [
+      "theatre",
+      "drama",
+      "acting",
+      "performance",
+      "directing",
+      "theatrical design",
+      "stage design",
+      "costume studies",
+      "performing arts"
+    ]
+  },
+
+  {
+    "title": "Agriculture",
+    "keywords": [
+      "agriculture",
+      "agronomy",
+      "farming",
+      "crop science",
+      "agricultural science",
+      "agribusiness",
+      "sustainable agriculture"
+    ]
+  },
+  {
+    "title": "Animal Science",
+    "keywords": [
+      "animal science",
+      "livestock",
+      "animal nutrition",
+      "animal behaviour",
+      "pre-vet",
+      "veterinary science"
+    ]
+  },
+  {
+    "title": "Plant Science",
+    "keywords": [
+      "plant science",
+      "botany",
+      "horticulture",
+      "plant biology",
+      "crop production",
+      "plant pathology",
+      "plant growth"
+    ]
+  },
+  {
+    "title": "Food Science",
+    "keywords": [
+      "food science",
+      "food technology",
+      "food safety",
+      "nutrition",
+      "food engineering",
+      "food processing",
+      "food microbiology"
+    ]
+  }
+]

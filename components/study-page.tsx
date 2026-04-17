@@ -22,9 +22,10 @@ interface CardData {
 interface StudyPageProps {
   cards: CardData[]
   deckTitle?: string
+  guest?: boolean
 }
 
-export function StudyPage({ cards }: StudyPageProps) {
+export function StudyPage({ cards, guest }: StudyPageProps) {
   const initialDueCards = useRef(cards.filter((c) => c.nextDue !== null && c.nextDue <= Date.now()))
   const [activeCards, setActiveCards] = useState(cards)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -36,7 +37,7 @@ export function StudyPage({ cards }: StudyPageProps) {
 
   const handleResult = useCallback(
     (grade: "forgot" | "hard" | "good" | "easy") => {
-      recordUsage(currentCard.id, grade)
+      if (!guest) recordUsage(currentCard.id, grade)
 
       const isCorrect = grade === "good" || grade === "easy"
       if (!isCorrect) {

@@ -1,12 +1,12 @@
 const GRADIENTS = [
-  "from-violet-500 to-indigo-700",
-  "from-sky-400 to-blue-600",
-  "from-emerald-400 to-teal-600",
-  "from-rose-400 to-pink-600",
-  "from-amber-400 to-orange-600",
-  "from-fuchsia-500 to-purple-700",
-  "from-cyan-400 to-sky-600",
-  "from-lime-400 to-green-600",
+  "from-slate-700 to-slate-900",
+  "from-zinc-600 to-zinc-800",
+  "from-stone-600 to-stone-800",
+  "from-neutral-600 to-neutral-800",
+  "from-gray-600 to-gray-900",
+  "from-slate-600 to-zinc-800",
+  "from-zinc-700 to-stone-900",
+  "from-stone-700 to-neutral-900",
 ];
 
 export function cardGradient(id: string): string {

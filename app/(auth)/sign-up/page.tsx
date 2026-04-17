@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { signUp, signIn } from "@/lib/auth-client";
@@ -9,29 +8,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-function isDalEmail(email: string) {
-  return email.trim().toLowerCase().endsWith("@dal.ca");
-}
-
 export default function SignUpPage() {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [verifyPending, setVerifyPending] = useState(false);
   const [pending, setPending] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-
-    if (!isDalEmail(email)) {
-      setError("Sign up requires a @dal.ca email address.");
-      return;
-    }
-
     setPending(true);
 
     const { error } = await signUp.email({
@@ -57,7 +45,7 @@ export default function SignUpPage() {
   if (verifyPending) {
     return (
       <div className="w-full max-w-sm">
-        <div className="bg-card/70 backdrop-blur-md border border-border rounded-2xl p-8 text-center space-y-3">
+        <div className="rounded-3xl bg-card dark:bg-zinc-900 shadow-[0_2px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-none dark:border dark:border-white/20 p-8 text-center space-y-3">
           <p className="text-lg font-medium">Verify your email</p>
           <p className="text-sm text-muted-foreground">
             We sent a verification link to{" "}
@@ -77,15 +65,20 @@ export default function SignUpPage() {
 
   return (
     <div className="w-full max-w-sm">
-      <div className="bg-card/70 backdrop-blur-md border border-border rounded-2xl p-8 space-y-6">
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold tracking-tight">
-            Create an account
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            For Dalhousie students — use your{" "}
-            <span className="text-foreground">@dal.ca</span> email
-          </p>
+      <div className="rounded-3xl bg-card dark:bg-zinc-900 shadow-[0_2px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-none dark:border dark:border-white/20 p-8 space-y-6">
+        <h1 className="text-xl font-semibold tracking-tight">
+          Create an account
+        </h1>
+
+        <Button className="w-full" onClick={handleMicrosoft} type="button">
+          <MicrosoftIcon />
+          Continue with Dalhousie NetID
+        </Button>
+
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="flex-1 border-t border-border" />
+          or
+          <span className="flex-1 border-t border-border" />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -103,11 +96,11 @@ export default function SignUpPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Dal email</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
-              placeholder="bXXXXXXX@dal.ca"
+              placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -154,27 +147,6 @@ export default function SignUpPage() {
             {pending ? "Creating account…" : "Create account"}
           </Button>
         </form>
-
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex-1 border-t border-border" />
-          or
-          <span className="flex-1 border-t border-border" />
-        </div>
-
-        <div className="space-y-2">
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={handleMicrosoft}
-            type="button"
-          >
-            <MicrosoftIcon />
-            Continue with Microsoft
-          </Button>
-          <p className="text-center text-xs text-muted-foreground">
-            You&apos;ll verify your @dal.ca email after signing in
-          </p>
-        </div>
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}

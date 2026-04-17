@@ -387,6 +387,17 @@ export async function sendDalVerification(dalEmail: string): Promise<void> {
   });
 }
 
+// ── Onboarding ───────────────────────────────────────────────────────────────
+
+export async function saveFieldOfStudy(value: string): Promise<void> {
+  const { user } = await requireSession();
+  if (!value.trim()) throw new Error("Field of study is required");
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { fieldOfStudy: value.trim() },
+  });
+}
+
 // ── Settings ─────────────────────────────────────────────────────────────────
 
 export async function updateTheme(

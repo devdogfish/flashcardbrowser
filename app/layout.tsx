@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { DustOverlay } from "@/components/dust-overlay";
@@ -53,8 +54,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="font-sans antialiased bg-background text-foreground min-h-svh">
-        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-        <script src="/theme-init.js" />
+        <Script src="/theme-init.js" strategy="beforeInteractive" />
         <div className="w-full bg-amber-400 dark:bg-amber-500 text-amber-950 text-sm font-medium text-center px-4 py-2.5">
           Flipt is currently under development — some features may be
           unavailable or change without notice.

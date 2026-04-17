@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
 
   if (!token) {
-    return NextResponse.redirect(new URL("/verify-dal?error=invalid", request.url));
+    return NextResponse.redirect(new URL("/onboarding?error=invalid", request.url));
   }
 
   const record = await prisma.dalVerification.findUnique({
@@ -14,12 +14,12 @@ export async function GET(request: NextRequest) {
   });
 
   if (!record) {
-    return NextResponse.redirect(new URL("/verify-dal?error=invalid", request.url));
+    return NextResponse.redirect(new URL("/onboarding?error=invalid", request.url));
   }
 
   if (record.expiresAt < new Date()) {
     await prisma.dalVerification.delete({ where: { token } });
-    return NextResponse.redirect(new URL("/verify-dal?error=expired", request.url));
+    return NextResponse.redirect(new URL("/onboarding?error=expired", request.url));
   }
 
   await prisma.$transaction([

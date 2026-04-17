@@ -248,15 +248,15 @@ export default async function DeckDetailPage({ params }: Props) {
               </>
             ) : (
               <>
-                <Link href="/sign-up">
+                <Link href={`/study/${deck.id}`}>
                   <Button className="w-full gap-2">
                     <BookOpen className="w-4 h-4" />
-                    Sign up to study with spaced repetition
+                    Try it out
                   </Button>
                 </Link>
-                <Link href="/sign-in">
+                <Link href="/sign-up">
                   <Button variant="outline" className="w-full">
-                    Sign in
+                    Sign up to track progress
                   </Button>
                 </Link>
               </>

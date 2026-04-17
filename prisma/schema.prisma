@@ -56,6 +56,7 @@ model User {
   accounts         Account[]
   dalEmail         String?           @unique
   dalVerification  DalVerification?
+  fieldOfStudy     String?
 
   @@map("user")
 }

@@ -57,12 +57,6 @@ export default function SignInPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-
-    if (mode === "magic-link" && !email.trim().toLowerCase().endsWith("@dal.ca")) {
-      setError("Magic link sign-in requires a @dal.ca email address.");
-      return;
-    }
-
     setPending(true);
 
     if (mode === "magic-link") {
@@ -98,7 +92,7 @@ export default function SignInPage() {
   if (magicLinkSent) {
     return (
       <div className="w-full max-w-sm">
-        <div className="bg-card/70 backdrop-blur-md border border-border rounded-2xl p-8 text-center space-y-3">
+        <div className="rounded-3xl bg-card dark:bg-zinc-900 shadow-[0_2px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-none dark:border dark:border-white/20 p-8 text-center space-y-3">
           <p className="text-lg font-medium">Check your email</p>
           <p className="text-sm text-muted-foreground">
             We sent a sign-in link to{" "}
@@ -120,12 +114,18 @@ export default function SignInPage() {
 
   return (
     <div className="w-full max-w-sm">
-      <div className="bg-card/70 backdrop-blur-md border border-border rounded-2xl p-8 space-y-6">
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold tracking-tight">Sign in</h1>
-          <p className="text-sm text-muted-foreground">
-            Dalhousie students only
-          </p>
+      <div className="rounded-3xl bg-card dark:bg-zinc-900 shadow-[0_2px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-none dark:border dark:border-white/20 p-8 space-y-6">
+        <h1 className="text-xl font-semibold tracking-tight">Sign in</h1>
+
+        <Button className="w-full" onClick={handleMicrosoft} type="button">
+          <MicrosoftIcon />
+          Continue with Dalhousie NetID
+        </Button>
+
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="flex-1 border-t border-border" />
+          or
+          <span className="flex-1 border-t border-border" />
         </div>
 
         {/* ── Debug panel (dev only) ── */}
@@ -213,24 +213,7 @@ export default function SignInPage() {
                 ? "Send magic link"
                 : "Sign in"}
           </Button>
-        </form>
 
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex-1 border-t border-border" />
-          or
-          <span className="flex-1 border-t border-border" />
-        </div>
-
-        <div className="space-y-2">
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={handleMicrosoft}
-            type="button"
-          >
-            <MicrosoftIcon />
-            Continue with Microsoft
-          </Button>
           <Button
             variant="ghost"
             className="w-full text-muted-foreground"
@@ -244,10 +227,10 @@ export default function SignInPage() {
               ? "Sign in with magic link instead"
               : "Sign in with password instead"}
           </Button>
-        </div>
+        </form>
 
         <p className="text-center text-sm text-muted-foreground">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link
             href="/sign-up"
             className="text-foreground underline underline-offset-4 hover:no-underline"

@@ -7,7 +7,7 @@ const PUBLIC_PREFIXES = [
   "/sign-up",
   "/forgot-password",
   "/reset-password",
-  "/verify-dal",
+  "/onboarding",
   "/api/auth",
   "/api/verify-dal",
   "/_next",
@@ -37,8 +37,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const user = (session as any).user as { dalEmail?: string | null; email: string; emailVerified: boolean; id: string };
+  const user = (session as any).user as { dalEmail?: string | null; fieldOfStudy?: string | null; email: string; emailVerified: boolean; id: string };
 
   // Dev bypass — seed users don't have real Dal emails
   if (process.env.NODE_ENV === "development" && !user.dalEmail) {
@@ -66,8 +65,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (!user.dalEmail) {
-    return NextResponse.redirect(new URL("/verify-dal", request.url));
+  if (!user.dalEmail || !user.fieldOfStudy) {
+    return NextResponse.redirect(new URL("/onboarding", request.url));
   }
 
   return NextResponse.next();
