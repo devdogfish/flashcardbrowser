@@ -340,6 +340,76 @@ export async function unshareDeck(deckId: string, userId: string): Promise<void>
   revalidatePath(`/decks/${deckId}`);
 }
 
+// ── Collections ──────────────────────────────────────────────────────────────
+
+export async function createCollection(
+  name: string,
+): Promise<{ id: string; name: string }> {
+  const { user } = await requireSession();
+  if (!name.trim()) throw new Error("Name is required");
+  const collection = await prisma.collection.create({
+    data: { userId: user.id, name: name.trim() },
+  });
+  revalidatePath("/decks");
+  return { id: collection.id, name: collection.name };
+}
+
+export async function deleteCollection(id: string): Promise<void> {
+  const { user } = await requireSession();
+  const collection = await prisma.collection.findUnique({ where: { id } });
+  if (!collection || collection.userId !== user.id)
+    throw new Error("Not found");
+  await prisma.collection.delete({ where: { id } });
+  revalidatePath("/decks");
+}
+
+export async function renameCollection(
+  id: string,
+  name: string,
+): Promise<void> {
+  const { user } = await requireSession();
+  if (!name.trim()) throw new Error("Name is required");
+  const collection = await prisma.collection.findUnique({ where: { id } });
+  if (!collection || collection.userId !== user.id)
+    throw new Error("Not found");
+  await prisma.collection.update({ where: { id }, data: { name: name.trim() } });
+  revalidatePath("/decks");
+}
+
+export async function addDeckToCollection(
+  collectionId: string,
+  deckId: string,
+): Promise<void> {
+  const { user } = await requireSession();
+  const collection = await prisma.collection.findUnique({
+    where: { id: collectionId },
+  });
+  if (!collection || collection.userId !== user.id)
+    throw new Error("Not found");
+  await prisma.collectionDeck.upsert({
+    where: { collectionId_deckId: { collectionId, deckId } },
+    create: { collectionId, deckId },
+    update: {},
+  });
+  revalidatePath("/decks");
+  revalidatePath(`/decks/${deckId}/edit`);
+}
+
+export async function removeDeckFromCollection(
+  collectionId: string,
+  deckId: string,
+): Promise<void> {
+  const { user } = await requireSession();
+  const collection = await prisma.collection.findUnique({
+    where: { id: collectionId },
+  });
+  if (!collection || collection.userId !== user.id)
+    throw new Error("Not found");
+  await prisma.collectionDeck.deleteMany({ where: { collectionId, deckId } });
+  revalidatePath("/decks");
+  revalidatePath(`/decks/${deckId}/edit`);
+}
+
 // ── Dal verification ─────────────────────────────────────────────────────────
 
 export async function sendDalVerification(dalEmail: string): Promise<void> {
@@ -380,7 +450,7 @@ export async function sendDalVerification(dalEmail: string): Promise<void> {
   const confirmUrl = `${process.env.BETTER_AUTH_URL}/api/verify-dal/confirm?token=${token}`;
 
   await resend.emails.send({
-    from: "noreply@flashcardbrowser.cards",
+    from: "noreply@flashcardbrowser.com",
     to: normalised,
     subject: "Verify your Dalhousie email for Flipt",
     text: `Click the link below to link your Dal email to your Flipt account. This link expires in 1 hour.\n\n${confirmUrl}`,

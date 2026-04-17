@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db"
 import { DeckMetadataForm } from "@/components/deck-metadata-form"
 import { CardListEditor } from "@/components/card-list-editor"
 import { DeleteDeckButton } from "@/components/delete-deck-button"
+import { DeckCollectionManager } from "@/components/deck-collection-manager"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft } from "lucide-react"
 
@@ -17,10 +18,22 @@ export default async function EditDeckPage({
   const session = await auth.api.getSession({ headers: await headers() })
   const { id } = await params
 
-  const deck = await prisma.deck.findUnique({
-    where: { id },
-    include: { cards: { orderBy: { position: "asc" } } },
-  })
+  const [deck, collections] = await Promise.all([
+    prisma.deck.findUnique({
+      where: { id },
+      include: {
+        cards: { orderBy: { position: "asc" } },
+        collections: { select: { collectionId: true } },
+      },
+    }),
+    session
+      ? prisma.collection.findMany({
+          where: { userId: session.user.id },
+          select: { id: true, name: true },
+          orderBy: { createdAt: "asc" },
+        })
+      : Promise.resolve([]),
+  ])
 
   if (!deck) notFound()
   if (!session || deck.ownerId !== session.user.id) notFound()
@@ -70,6 +83,20 @@ export default async function EditDeckPage({
               imageUrl: c.imageUrl,
               position: c.position,
             }))}
+          />
+        </section>
+
+        <Separator className="my-8" />
+
+        <section className="mb-10">
+          <h2 className="text-base font-semibold mb-1">Collections</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Add this deck to one or more collections.
+          </p>
+          <DeckCollectionManager
+            deckId={deck.id}
+            collections={collections}
+            memberCollectionIds={deck.collections.map((c) => c.collectionId)}
           />
         </section>
 

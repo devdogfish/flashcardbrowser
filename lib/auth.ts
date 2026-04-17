@@ -14,15 +14,15 @@ function getResend() {
 }
 
 // TODO: Update this to your verified Resend sender domain
-const FROM_EMAIL = "noreply@flashcardbrowser.cards";
+const FROM_EMAIL = "noreply@flashcardbrowser.com";
 const APP_NAME = "flashcardbrowser";
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   baseURL: process.env.BETTER_AUTH_URL,
   trustedOrigins: [
-    "https://flashcardbrowser.cards",
-    "https://www.flashcardbrowser.cards",
+    "https://flashcardbrowser.com",
+    "https://www.flashcardbrowser.com",
   ],
 
   user: {

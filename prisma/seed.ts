@@ -32,8 +32,22 @@ async function main() {
     },
   });
 
+  // Seed a stable API key for Luigi so the deck-generator skill can use it
+  const LUIGI_API_KEY = "flashcardbrowser_a4f8c2e6b1d3f7a9c5e2b4d6f8a1c3e5b7d9f2a4c6e8b1d3";
+  await prisma.apiKey.upsert({
+    where: { key: LUIGI_API_KEY },
+    update: {},
+    create: {
+      id: "seed-apikey-luigi",
+      userId: luigi.id,
+      name: "Deck Generator (seeded)",
+      key: LUIGI_API_KEY,
+    },
+  });
+
   console.log("Seed complete.");
   console.log(`  User: ${luigi.name} <${luigi.email}>`);
+  console.log(`  API Key: ${LUIGI_API_KEY}`);
 }
 
 main()

@@ -25,10 +25,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DeckCard, cardGradient } from "@/components/deck-card";
+import { CollectionStrip, type CollectionData } from "@/components/collection-strip";
 import { toggleFavorite } from "@/app/actions";
 import { NewDeckButton } from "./new-deck-button";
 
 type SortKey = "newest" | "most-cards" | "alphabetical";
+
+const PAGE_SIZE = 6; // 2 rows × 3 columns
 
 interface DeckData {
   id: string;
@@ -39,6 +42,7 @@ interface DeckData {
   ownerName?: string | null;
   isPublic?: boolean;
   createdAt?: string;
+  collectionIds?: string[];
 }
 
 interface DeckSelectionProps {
@@ -46,6 +50,7 @@ interface DeckSelectionProps {
   sharedDecks?: DeckData[];
   publicDecks: DeckData[];
   favoriteIds: string[];
+  collections?: CollectionData[];
 }
 
 export function DeckSelection({
@@ -53,6 +58,7 @@ export function DeckSelection({
   sharedDecks = [],
   publicDecks,
   favoriteIds,
+  collections: initialCollections = [],
 }: DeckSelectionProps) {
   const router = useRouter();
   const searchRef = useRef<HTMLInputElement>(null);
@@ -62,6 +68,15 @@ export function DeckSelection({
   const [localFavorites, setLocalFavorites] = useState(
     () => new Set(favoriteIds),
   );
+  const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
+  const [collections, setCollections] = useState<CollectionData[]>(initialCollections);
+  // visible count per section label
+  const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({});
+
+  // Reset page sizes when collection filter changes
+  useEffect(() => {
+    setVisibleCounts({});
+  }, [activeCollectionId]);
 
   const handleToggleFavorite = useCallback((deckId: string) => {
     setLocalFavorites((prev) => {
@@ -124,7 +139,6 @@ export function DeckSelection({
       } else if (sort === "most-cards") {
         sorted.sort((a, b) => b.cardCount - a.cardCount);
       } else {
-        // newest: sort by createdAt desc (fallback to original order)
         sorted.sort((a, b) => {
           if (!a.createdAt || !b.createdAt) return 0;
           return (
@@ -137,7 +151,7 @@ export function DeckSelection({
     [sort],
   );
 
-  const filter = useCallback(
+  const filterByQuery = useCallback(
     (decks: DeckData[]) => {
       const filtered = !query.trim()
         ? decks
@@ -149,18 +163,33 @@ export function DeckSelection({
     [query, sortDecks],
   );
 
-  const favoriteDecks = filter(
-    allDecks.filter((d) => localFavorites.has(d.id)),
+  const filterByCollection = useCallback(
+    (decks: DeckData[]) => {
+      if (!activeCollectionId) return decks;
+      return decks.filter((d) =>
+        d.collectionIds?.includes(activeCollectionId),
+      );
+    },
+    [activeCollectionId],
   );
+
+  const filter = useCallback(
+    (decks: DeckData[]) => filterByQuery(filterByCollection(decks)),
+    [filterByQuery, filterByCollection],
+  );
+
+  const favoriteDecks = filter(allDecks.filter((d) => localFavorites.has(d.id)));
+
+  // When a collection is active, only show user's own decks (+ favorites from own decks)
   const filteredUserDecks = filter(
     userDecks.filter((d) => !localFavorites.has(d.id)),
   );
-  const filteredSharedDecks = filter(
-    sharedDecks.filter((d) => !localFavorites.has(d.id)),
-  );
-  const filteredPublicDecks = filter(
-    publicDecks.filter((d) => !localFavorites.has(d.id)),
-  );
+  const filteredSharedDecks = activeCollectionId
+    ? []
+    : filter(sharedDecks.filter((d) => !localFavorites.has(d.id)));
+  const filteredPublicDecks = activeCollectionId
+    ? []
+    : filter(publicDecks.filter((d) => !localFavorites.has(d.id)));
 
   const hasAnyDecks = allDecks.length > 0;
   const noResults =
@@ -170,8 +199,51 @@ export function DeckSelection({
     filteredSharedDecks.length === 0 &&
     filteredPublicDecks.length === 0;
 
+  const sections = [
+    {
+      icon: <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />,
+      label: "Favorites",
+      decks: favoriteDecks,
+      isPublic: false,
+      showBadge: true,
+    },
+    {
+      icon: <Lock className="w-3.5 h-3.5 text-muted-foreground" />,
+      label: "Your Decks",
+      decks: filteredUserDecks,
+      isPublic: false,
+      showBadge: false,
+    },
+    {
+      icon: <Share2 className="w-3.5 h-3.5 text-muted-foreground" />,
+      label: "Shared with me",
+      decks: filteredSharedDecks,
+      isPublic: false,
+      showBadge: true,
+    },
+    {
+      icon: <Globe className="w-3.5 h-3.5" />,
+      label: "Community",
+      decks: filteredPublicDecks,
+      isPublic: true,
+      showBadge: false,
+    },
+  ].filter((s) => s.decks.length > 0);
+
   return (
     <>
+      {/* Collections strip */}
+      {(collections.length > 0 || hasAnyDecks) && (
+        <div className="mb-8">
+          <CollectionStrip
+            collections={collections}
+            activeId={activeCollectionId}
+            onSelect={setActiveCollectionId}
+            onCollectionsChange={setCollections}
+          />
+        </div>
+      )}
+
       {/* Search + Sort */}
       {hasAnyDecks && (
         <div className="flex items-center gap-3 mb-10">
@@ -188,11 +260,7 @@ export function DeckSelection({
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 gap-2 shrink-0"
-              >
+              <Button variant="outline" size="sm" className="h-9 gap-2 shrink-0">
                 <ArrowUpDown className="w-3.5 h-3.5" />
                 {sort === "newest"
                   ? "Newest"
@@ -206,15 +274,9 @@ export function DeckSelection({
                 value={sort}
                 onValueChange={(v) => setSort(v as SortKey)}
               >
-                <DropdownMenuRadioItem value="newest">
-                  Newest
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="most-cards">
-                  Most cards
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="alphabetical">
-                  A–Z
-                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="newest">Newest</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="most-cards">Most cards</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="alphabetical">A–Z</DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -226,56 +288,30 @@ export function DeckSelection({
         <p className="text-sm text-muted-foreground">No decks available.</p>
       ) : noResults ? (
         <p className="text-sm text-muted-foreground">
-          No decks match &ldquo;{query}&rdquo;.
+          {activeCollectionId
+            ? "No decks in this collection yet."
+            : `No decks match "${query}".`}
         </p>
       ) : (
         <div className="space-y-12">
-          {[
-            {
-              icon: (
-                <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-              ),
-              label: "Favorites",
-              decks: favoriteDecks,
-              isPublic: false,
-              showBadge: true,
-            },
-            {
-              icon: <Lock className="w-3.5 h-3.5 text-muted-foreground" />,
-              label: "Your Decks",
-              decks: filteredUserDecks,
-              isPublic: false,
-              showBadge: false,
-            },
-            {
-              icon: <Share2 className="w-3.5 h-3.5 text-muted-foreground" />,
-              label: "Shared with me",
-              decks: filteredSharedDecks,
-              isPublic: false,
-              showBadge: true,
-            },
-            {
-              icon: <Globe className="w-3.5 h-3.5" />,
-              label: "Community",
-              decks: filteredPublicDecks,
-              isPublic: true,
-              showBadge: false,
-            },
-          ]
-            .filter((s) => s.decks.length > 0)
-            .map((section, sectionIndex) => (
+          {sections.map((section, sectionIndex) => {
+            const visible = visibleCounts[section.label] ?? PAGE_SIZE;
+            const visibleDecks = section.decks.slice(0, visible);
+            const hasMore = section.decks.length > visible;
+
+            return (
               <div key={section.label}>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-6 flex items-center gap-1.5">
                   {section.icon}
                   {section.label}
                 </p>
                 <div className="grid grid-cols-3 gap-6">
-                  {section.decks.map((deck, index) => (
+                  {visibleDecks.map((deck, index) => (
                     <motion.div
                       key={deck.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
+                      transition={{ delay: index * 0.04 }}
                     >
                       <DeckCard
                         id={deck.id}
@@ -295,10 +331,32 @@ export function DeckSelection({
                     </motion.div>
                   ))}
                 </div>
+
+                {hasMore && (
+                  <div className="mt-6 flex justify-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setVisibleCounts((prev) => ({
+                          ...prev,
+                          [section.label]: (prev[section.label] ?? PAGE_SIZE) + PAGE_SIZE,
+                        }))
+                      }
+                    >
+                      Load more
+                      <span className="ml-1.5 text-muted-foreground text-xs">
+                        {section.decks.length - visible} remaining
+                      </span>
+                    </Button>
+                  </div>
+                )}
               </div>
-            ))}
+            );
+          })}
         </div>
       )}
+
       {/* Floating session bar */}
       <AnimatePresence>
         {selectedDecks.length > 0 && (
@@ -312,7 +370,6 @@ export function DeckSelection({
             <div className="bg-card border-t border-border shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.1)]">
               <div className="max-w-4xl mx-auto px-5 py-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
-                  {/* Circular deck thumbnails — click to remove */}
                   <div className="flex items-center gap-1">
                     {selectedDeckData.map((deck) => (
                       <button
@@ -344,12 +401,10 @@ export function DeckSelection({
                       </button>
                     ))}
                   </div>
-
                   <span className="text-sm text-muted-foreground tabular-nums">
                     {totalCards} cards
                   </span>
                 </div>
-
                 <Button
                   onClick={handleStartStudy}
                   size="sm"

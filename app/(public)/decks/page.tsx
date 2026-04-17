@@ -19,56 +19,67 @@ export default async function DecksPage() {
 
   if (session) {
     // Authenticated: show user's decks + shared decks + public decks
-    const [userDecks, sharedDecks, publicDecks, favorites] = await Promise.all([
-      prisma.deck.findMany({
-        where: { ownerId: session.user.id },
-        include: { _count: { select: { cards: true } } },
-        orderBy: { updatedAt: "desc" },
-      }),
-      prisma.deckShare.findMany({
-        where: { userId: session.user.id },
-        include: {
-          deck: {
-            include: {
-              _count: { select: { cards: true } },
-              owner: { select: { name: true } },
+    const [userDecks, sharedDecks, publicDecks, favorites, collections] =
+      await Promise.all([
+        prisma.deck.findMany({
+          where: { ownerId: session.user.id },
+          include: {
+            _count: { select: { cards: true } },
+            collections: { select: { collectionId: true } },
+          },
+          orderBy: { updatedAt: "desc" },
+        }),
+        prisma.deckShare.findMany({
+          where: { userId: session.user.id },
+          include: {
+            deck: {
+              include: {
+                _count: { select: { cards: true } },
+                owner: { select: { name: true } },
+              },
             },
           },
-        },
-      }),
-      prisma.deck.findMany({
-        where: {
-          visibility: "PUBLIC",
-          ownerId: { not: session.user.id },
-          // Exclude decks already shared with this user
-          NOT: {
-            shares: { some: { userId: session.user.id } },
+        }),
+        prisma.deck.findMany({
+          where: {
+            visibility: "PUBLIC",
+            ownerId: { not: session.user.id },
+            NOT: {
+              shares: { some: { userId: session.user.id } },
+            },
           },
-        },
-        include: {
-          _count: { select: { cards: true } },
-          owner: { select: { name: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.deckFavorite.findMany({
-        where: { userId: session.user.id },
-        select: { deckId: true },
-      }),
-    ]);
+          include: {
+            _count: { select: { cards: true } },
+            owner: { select: { name: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.deckFavorite.findMany({
+          where: { userId: session.user.id },
+          select: { deckId: true },
+        }),
+        prisma.collection.findMany({
+          where: { userId: session.user.id },
+          include: { decks: { select: { deckId: true } } },
+          orderBy: { createdAt: "asc" },
+        }),
+      ]);
 
     const favoriteIds = new Set(favorites.map((f) => f.deckId));
 
-    const toRow = (d: {
-      id: string;
-      title: string;
-      description: string | null;
-      coverImage: string | null;
-      createdAt: Date;
-      visibility: string;
-      _count: { cards: number };
-      owner?: { name: string | null } | null;
-    }) => ({
+    const toRow = (
+      d: {
+        id: string;
+        title: string;
+        description: string | null;
+        coverImage: string | null;
+        createdAt: Date;
+        visibility: string;
+        _count: { cards: number };
+        owner?: { name: string | null } | null;
+      },
+      collectionIds?: string[],
+    ) => ({
       id: d.id,
       title: d.title,
       description: d.description ?? "",
@@ -77,27 +88,34 @@ export default async function DecksPage() {
       ownerName: d.owner?.name ?? null,
       createdAt: d.createdAt.toISOString(),
       isPublic: d.visibility === "PUBLIC",
+      collectionIds: collectionIds ?? [],
     });
 
     const sharedRows = sharedDecks.map((s) => ({
-      ...toRow({
-        ...s.deck,
-        visibility: s.deck.visibility,
-      }),
+      ...toRow({ ...s.deck, visibility: s.deck.visibility }),
       isShared: true,
+    }));
+
+    const collectionRows = collections.map((c) => ({
+      id: c.id,
+      name: c.name,
+      deckIds: c.decks.map((d) => d.deckId),
     }));
 
     return (
       <PageLayout
         title="Your decks"
-        subtitle="Your collection, shared decks, and community decks"
+        subtitle="Your decks, shared decks, and community decks"
         maxWidth="max-w-4xl"
       >
         <DeckSelection
-          userDecks={userDecks.map(toRow)}
+          userDecks={userDecks.map((d) =>
+            toRow(d, d.collections.map((c) => c.collectionId)),
+          )}
           sharedDecks={sharedRows}
-          publicDecks={publicDecks.map(toRow)}
+          publicDecks={publicDecks.map((d) => toRow(d))}
           favoriteIds={[...favoriteIds]}
+          collections={collectionRows}
         />
       </PageLayout>
     );

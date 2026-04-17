@@ -49,6 +49,7 @@ model User {
   sharedDecks      DeckShare[]
   apiKeys          ApiKey[]
   schedules        CardSchedule[]
+  collections      Collection[]
   emailVerified    Boolean           @default(false)
   image            String?
   updatedAt        DateTime          @updatedAt
@@ -94,13 +95,39 @@ model Deck {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  owner     User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  cards     Flashcard[]
-  favorites DeckFavorite[]
-  shares    DeckShare[]
+  owner       User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  cards       Flashcard[]
+  favorites   DeckFavorite[]
+  shares      DeckShare[]
+  collections CollectionDeck[]
 
   @@index([ownerId])
   @@index([visibility])
+}
+
+model Collection {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  decks CollectionDeck[]
+
+  @@index([userId])
+}
+
+model CollectionDeck {
+  collectionId String
+  deckId       String
+  addedAt      DateTime @default(now())
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  deck       Deck       @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  @@id([collectionId, deckId])
+  @@index([deckId])
 }
 
 model DeckShare {

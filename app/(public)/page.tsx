@@ -73,7 +73,7 @@ export default async function LandingPage() {
       {/* Footer */}
       <footer className="px-5 py-8 border-t border-border">
         <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-          <span>flashcardbrowser — for Dal students</span>
+          flashcardbrowser
           <div className="flex items-center gap-4">
             <Link
               href="/decks"
