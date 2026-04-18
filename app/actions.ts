@@ -592,6 +592,47 @@ export async function createCollection(
   return { id: collection.id, name: collection.name };
 }
 
+export async function createCourseCollection(
+  courseCode: string,
+  name: string,
+): Promise<{ id: string; courseCode: string; name: string }> {
+  const { user } = await requireSession();
+
+  const code = courseCode.trim().toUpperCase();
+  const trimmedName = name.trim();
+  if (!code) throw new Error("Course code is required");
+  if (!trimmedName) throw new Error("Course name is required");
+
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const recentCount = await prisma.collection.count({
+    where: { userId: user.id, courseCode: { not: null }, createdAt: { gte: since } },
+  });
+  if (recentCount >= 3) {
+    throw new Error("Rate limit exceeded — you can create at most 3 course collections per 24 hours");
+  }
+
+  const existing = await prisma.collection.findUnique({ where: { courseCode: code } });
+  if (existing) {
+    throw new Error(`A collection for ${code} already exists`);
+  }
+
+  const collection = await prisma.$transaction(async (tx) => {
+    const col = await tx.collection.create({
+      data: { userId: user.id, name: trimmedName, courseCode: code },
+    });
+    const deck = await tx.deck.create({
+      data: { ownerId: user.id, title: trimmedName, deckType: "COURSE", courseCode: code, visibility: "PUBLIC" },
+    });
+    await tx.collectionDeck.create({
+      data: { collectionId: col.id, deckId: deck.id },
+    });
+    return col;
+  });
+
+  revalidatePath("/decks");
+  return { id: collection.id, courseCode: collection.courseCode!, name: collection.name };
+}
+
 export async function deleteCollection(id: string): Promise<void> {
   const { user } = await requireSession();
   const collection = await prisma.collection.findUnique({ where: { id } });

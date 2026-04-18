@@ -10,6 +10,7 @@ import {
   COLLECTIONS_LIST_RESPONSE, COLLECTIONS_COURSES_RESPONSE,
   COLLECTION_GET_RESPONSE,
   COLLECTION_CREATE_BODY, COLLECTION_CREATE_RESPONSE,
+  COURSE_COLLECTION_CREATE_BODY, COURSE_COLLECTION_CREATE_RESPONSE,
   COLLECTION_PATCH_BODY, COLLECTION_PATCH_RESPONSE,
   COLLECTION_ADD_DECK_RESPONSE,
 } from "@/content/docs-samples";
@@ -258,18 +259,30 @@ To list all course collections globally, add `?type=course`:
 
 <EndpointCard method="POST" path="/api/collections" auth="required" />
 
-Creates a new personal collection.
+Creates a new personal collection. To bootstrap a course collection for a Dal course that doesn't exist yet, include `courseCode` — this creates the collection and adds an empty community deck automatically.
 
 <FieldTable fields={[
-  { field: "name", type: "string", required: true, note: "Collection name" },
+  { field: "name",       type: "string", required: true,  note: "Collection name" },
+  { field: "courseCode", type: "string", required: false, note: "Dal course code (e.g. \"BIOL 2030\") — creates a community-owned course collection. Normalised to uppercase. One collection per course code globally." },
 ]} />
+
+**Personal collection**
 
 <CodeBlock label="Request body" code={COLLECTION_CREATE_BODY} />
 <CodeBlock label="Response (201)" code={COLLECTION_CREATE_RESPONSE} />
 
+**Course collection**
+
+<CodeBlock label="Request body" code={COURSE_COLLECTION_CREATE_BODY} />
+<CodeBlock label="Response (201)" code={COURSE_COLLECTION_CREATE_RESPONSE} />
+
+> Course collections are community-owned — any verified Dal student can create one, but only admins can rename or delete them. You can create at most **3 course collections per 24 hours**.
+
 <ErrorTable errors={[
   { code: "401", message: "Missing or invalid API key" },
+  { code: "409", message: "A collection for that course code already exists — see id in response" },
   { code: "422", message: "Missing required field: name" },
+  { code: "429", message: "Rate limit exceeded — max 3 course collections per 24 hours" },
 ]} />
 
 ---
@@ -302,7 +315,7 @@ Returns a collection and its full deck list. Course collections are publicly rea
 
 <ErrorTable errors={[
   { code: "401", message: "Missing or invalid API key" },
-  { code: "403", message: "Collection belongs to a different user" },
+  { code: "403", message: "Collection belongs to a different user, or is a course collection (admin only)" },
   { code: "404", message: "Collection not found" },
   { code: "422", message: "Missing required field: name" },
 ]} />
@@ -313,11 +326,11 @@ Returns a collection and its full deck list. Course collections are publicly rea
 
 <EndpointCard method="DELETE" path="/api/collections/:id" auth="required" />
 
-Deletes the collection. Decks inside are **not** deleted — they are simply unlinked. Returns `204 No Content` on success.
+Deletes the collection. Decks inside are **not** deleted — they are simply unlinked. Returns `204 No Content` on success. Course collections can only be deleted by admins.
 
 <ErrorTable errors={[
   { code: "401", message: "Missing or invalid API key" },
-  { code: "403", message: "Collection belongs to a different user" },
+  { code: "403", message: "Collection belongs to a different user, or is a course collection (admin only)" },
   { code: "404", message: "Collection not found" },
 ]} />
 

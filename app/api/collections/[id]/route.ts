@@ -93,7 +93,13 @@ export async function PATCH(
   if (!existing) {
     return NextResponse.json({ error: "Collection not found" }, { status: 404 })
   }
-  if (existing.userId !== auth.userId) {
+
+  if (existing.courseCode !== null) {
+    const user = await prisma.user.findUnique({ where: { id: auth.userId }, select: { role: true } })
+    if (user?.role !== "ADMIN") {
+      return NextResponse.json({ error: "Course collections can only be renamed by admins" }, { status: 403 })
+    }
+  } else if (existing.userId !== auth.userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
@@ -136,13 +142,19 @@ export async function DELETE(
 
   const existing = await prisma.collection.findUnique({
     where: { id },
-    select: { userId: true },
+    select: { userId: true, courseCode: true },
   })
 
   if (!existing) {
     return NextResponse.json({ error: "Collection not found" }, { status: 404 })
   }
-  if (existing.userId !== auth.userId) {
+
+  if (existing.courseCode !== null) {
+    const user = await prisma.user.findUnique({ where: { id: auth.userId }, select: { role: true } })
+    if (user?.role !== "ADMIN") {
+      return NextResponse.json({ error: "Course collections can only be deleted by admins" }, { status: 403 })
+    }
+  } else if (existing.userId !== auth.userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

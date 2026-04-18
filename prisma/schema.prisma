@@ -147,8 +147,8 @@ model Collection {
   user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   decks CollectionDeck[]
 
+  @@unique([courseCode])
   @@index([userId])
-  @@index([courseCode])
 }
 
 model CollectionDeck {

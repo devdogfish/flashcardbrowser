@@ -244,6 +244,20 @@ export const COLLECTION_CREATE_RESPONSE = `{
   "updatedAt": "2024-09-01T12:00:00Z"
 }`;
 
+export const COURSE_COLLECTION_CREATE_BODY = `{
+  "name": "Cell Biology",
+  "courseCode": "BIOL 2030"
+}`;
+
+export const COURSE_COLLECTION_CREATE_RESPONSE = `{
+  "id": "cm1course2",
+  "name": "Cell Biology",
+  "courseCode": "BIOL 2030",
+  "deckCount": 1,
+  "createdAt": "2024-09-01T12:00:00Z",
+  "updatedAt": "2024-09-01T12:00:00Z"
+}`;
+
 export const COLLECTION_PATCH_BODY = `{ "name": "New Name" }`;
 
 export const COLLECTION_PATCH_RESPONSE = `{
