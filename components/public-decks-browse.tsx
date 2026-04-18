@@ -86,7 +86,7 @@ export function PublicDecksBrowse({ decks, courseCollections = [] }: PublicDecks
           </div>
           <div className="flex flex-col gap-2">
             {courseCollections.map((c) => (
-              <Link key={c.id} href={`/decks?course=${c.id}`}>
+              <Link key={c.id} href={`/decks/course/${c.id}`}>
                 <div className="flex items-center gap-4 px-4 py-3 rounded-xl border border-border bg-muted/40 hover:border-border/80 hover:bg-muted/60 transition-colors group">
                   <span className="shrink-0 inline-flex items-center text-[11px] leading-none font-bold px-2.5 py-1 rounded-full bg-foreground text-background">
                     {c.courseCode}

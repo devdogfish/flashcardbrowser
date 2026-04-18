@@ -23,6 +23,7 @@ export const auth = betterAuth({
   trustedOrigins: [
     "https://flashcardbrowser.com",
     "https://www.flashcardbrowser.com",
+    "http://localhost:3000",
   ],
 
   user: {
