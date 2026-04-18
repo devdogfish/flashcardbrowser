@@ -15,10 +15,10 @@ interface DeckCardProps {
   lastStudied?: string;
   creator?: string;
   isPublic: boolean;
-  isSelected: boolean;
+  isSelected?: boolean;
   isFavorited?: boolean;
   showBadge?: boolean;
-  onSelect: (id: string) => void;
+  onSelect?: (id: string) => void;
   onToggleFavorite?: (id: string) => void;
   image?: string;
 }
@@ -37,7 +37,7 @@ export function DeckCard({
   lastStudied,
   creator,
   isPublic,
-  isSelected,
+  isSelected = false,
   isFavorited,
   showBadge = false,
   onSelect,
@@ -53,7 +53,7 @@ export function DeckCard({
       className="cursor-pointer"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onClick={() => onSelect(id)}
+      onClick={() => onSelect?.(id)}
     >
       <div
         className={cn(
@@ -103,15 +103,13 @@ export function DeckCard({
           </span>
         )}
 
-        {/* Slide-up info panel
-            Default: translateY(DESC_H) — title visible at bottom, description hidden below card edge
-            Hover:   translateY(0)      — description slides up, reveals below title */}
+        {/* Slide-up info panel */}
         <motion.div
           className="absolute bottom-0 left-0 right-0 z-20"
           animate={{ y: hovered ? 0 : DESC_H }}
           transition={{ type: "spring", stiffness: 420, damping: 32 }}
         >
-          {/* Title row — always visible in default state */}
+          {/* Title row */}
           <div className="px-3 pt-3 pb-2 flex items-center justify-between gap-2">
             <div className="min-w-0 flex-1">
               <h3 className="font-semibold text-white text-sm leading-tight truncate">
@@ -153,7 +151,7 @@ export function DeckCard({
             </div>
           </div>
 
-          {/* Description — slides up from below on hover (DESC_H = this section's height) */}
+          {/* Description */}
           <div className="px-3 pt-1 pb-4">
             <p className="text-[11px] text-white/70 leading-relaxed line-clamp-2">
               {description || "No description."}

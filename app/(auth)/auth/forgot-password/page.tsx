@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
 
     const { error } = await authClient.requestPasswordReset({
       email,
-      redirectTo: '/reset-password',
+      redirectTo: '/auth/reset-password',
     })
 
     if (error) {
@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
             If an account exists for <span className="text-foreground">{email}</span>, you'll receive a reset link shortly.
           </p>
           <Link
-            href="/sign-in"
+            href="/auth/sign-in"
             className="inline-block text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
           >
             Back to sign in
@@ -83,7 +83,7 @@ export default function ForgotPasswordPage() {
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
-          <Link href="/sign-in" className="text-foreground underline underline-offset-4 hover:no-underline">
+          <Link href="/auth/sign-in" className="text-foreground underline underline-offset-4 hover:no-underline">
             Back to sign in
           </Link>
         </p>

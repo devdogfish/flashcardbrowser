@@ -11,7 +11,7 @@ import { SettingsApiKeys } from "@/components/settings-api-keys"
 
 export default async function SettingsPage() {
   const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) redirect("/sign-in")
+  if (!session) redirect("/auth/sign-in")
 
   const apiKeys = await prisma.apiKey.findMany({
     where: { userId: session.user.id },

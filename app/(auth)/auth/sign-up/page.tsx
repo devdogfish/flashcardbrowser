@@ -49,7 +49,7 @@ export default function SignUpPage() {
             to continue.
           </p>
           <Link
-            href="/sign-in"
+            href="/auth/sign-in"
             className="inline-block text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
           >
             Back to sign in
@@ -136,7 +136,7 @@ export default function SignUpPage() {
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
           <Link
-            href="/sign-in"
+            href="/auth/sign-in"
             className="text-foreground underline underline-offset-4 hover:no-underline"
           >
             Sign in

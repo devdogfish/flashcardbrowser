@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Monitor, Moon, Sun } from "lucide-react"
+import { BookOpen, Keyboard, Lightbulb, Monitor, Moon, Sun } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { updateTheme } from "@/app/actions"
 
@@ -45,7 +45,7 @@ export function UserMenu({ userName, userEmail, userImage }: UserMenuProps) {
 
   async function handleSignOut() {
     await signOut()
-    router.push("/sign-in")
+    router.push("/auth/sign-in")
   }
 
   function handleThemeChange(value: string) {
@@ -97,10 +97,29 @@ export function UserMenu({ userName, userEmail, userImage }: UserMenuProps) {
 
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild className="cursor-pointer">
-            <Link href="/decks">Switch decks</Link>
+            <Link href="/decks">Decks</Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild className="cursor-pointer">
             <Link href="/settings">Settings</Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link href="/tips" className="flex items-center gap-2">
+              <Lightbulb className="w-3.5 h-3.5 text-muted-foreground" />
+              Tips
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link href="/shortcuts" className="flex items-center gap-2">
+              <Keyboard className="w-3.5 h-3.5 text-muted-foreground" />
+              Shortcuts
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link href="/docs" className="flex items-center gap-2">
+              <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
+              Docs
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem

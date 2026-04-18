@@ -64,7 +64,7 @@ export function HeroSection({ session }: { session: boolean }) {
           </Link>
         ) : (
           <>
-            <Link href="/sign-up">
+            <Link href="/auth/sign-up">
               <Button
                 size="default"
                 className="h-10 px-6 bg-gold text-[oklch(0.12_0_0)] hover:bg-gold/90 font-medium shadow-none rounded-lg"

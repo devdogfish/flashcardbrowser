@@ -166,7 +166,7 @@ function FlowConnector() {
         className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-gold/40 bg-gold/5 text-[11px] font-medium text-gold"
       >
         <GitFork className="w-3 h-3" />
-        Fork this deck
+        Copy this deck
       </motion.div>
       <motion.div
         initial={{ scaleY: 0, opacity: 0 }}
@@ -489,7 +489,7 @@ export function UspSection() {
       <UspBlock
         number="02"
         label="Make it yours"
-        headline="Fork it. Edit manually"
+        headline="Copy it. Edit manually"
         headlineAccent="or let AI do it."
         body="Every deck is a starting point. Trim what won't be tested, add your prof's examples — or drop in your lecture PDF and get cards in seconds. Either way, the deck becomes yours."
         icon={<Pencil className="w-3.5 h-3.5" />}

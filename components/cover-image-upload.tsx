@@ -3,23 +3,45 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { ImagePlus, Loader2, X } from "lucide-react";
+import { ImagePlus, Loader2, Sparkles, X } from "lucide-react";
+import { generateCoverImage } from "@/app/actions";
 
 interface CoverImageUploadProps {
   value?: string | null;
   onChange: (url: string | null) => void;
   className?: string;
+  deckTitle?: string;
+  deckDescription?: string;
 }
 
 export function CoverImageUpload({
   value,
   onChange,
   className,
+  deckTitle,
+  deckDescription,
 }: CoverImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+
+  const busy = uploading || generating;
+
+  async function handleGenerate() {
+    if (!deckTitle?.trim()) return;
+    setError(null);
+    setGenerating(true);
+    try {
+      const { url } = await generateCoverImage(deckTitle, deckDescription || undefined);
+      onChange(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Generation failed.");
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   async function handleFile(file: File) {
     setError(null);
@@ -40,7 +62,7 @@ export function CoverImageUpload({
 
   function handleDragOver(e: React.DragEvent) {
     e.preventDefault();
-    if (!uploading) setIsDragging(true);
+    if (!busy) setIsDragging(true);
   }
 
   function handleDragLeave(e: React.DragEvent) {
@@ -52,7 +74,7 @@ export function CoverImageUpload({
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setIsDragging(false);
-    if (uploading) return;
+    if (busy) return;
     const file = e.dataTransfer.files?.[0];
     if (file && file.type.startsWith("image/")) {
       handleFile(file);
@@ -60,27 +82,32 @@ export function CoverImageUpload({
   }
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative group/cover", className)}>
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        disabled={uploading}
+        disabled={busy}
         className={cn(
           "relative w-full h-40 rounded-xl overflow-hidden border-2 border-dashed border-border",
           "flex flex-col items-center justify-center gap-2",
           "text-muted-foreground hover:text-foreground hover:border-foreground/30",
           "transition-colors cursor-pointer",
           isDragging && "border-foreground/50 bg-muted text-foreground",
-          uploading && "opacity-50 cursor-not-allowed",
+          busy && "opacity-50 cursor-not-allowed",
         )}
       >
-        {value ? (
-          <Image src={value} alt="Cover" fill className="object-cover" />
-        ) : uploading ? (
-          <Loader2 className="w-6 h-6 animate-spin" />
+        {value && !generating ? (
+          <Image src={value} alt="Cover" fill className="object-cover" loading="eager" priority />
+        ) : busy ? (
+          <>
+            <Loader2 className="w-6 h-6 animate-spin" />
+            {generating && (
+              <span className="text-sm font-medium">Generating cover...</span>
+            )}
+          </>
         ) : (
           <>
             <ImagePlus className="w-6 h-6" />
@@ -94,19 +121,46 @@ export function CoverImageUpload({
         )}
 
         {/* Hover overlay when image is set */}
-        {value && !uploading && (
-          <div className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-colors flex items-center justify-center">
-            <ImagePlus className="w-6 h-6 text-white opacity-0 group-hover:opacity-100" />
+        {value && !busy && (
+          <div className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
+            <ImagePlus className="w-6 h-6 text-white" />
           </div>
         )}
       </button>
 
+      {/* Generate with AI button */}
+      {!value && !busy && deckTitle?.trim() && (
+        <button
+          type="button"
+          onClick={handleGenerate}
+          className="mt-2 w-full flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+        >
+          <Sparkles className="w-4 h-4" />
+          Generate with AI
+        </button>
+      )}
+
+      {/* Regenerate button */}
+      {value && !busy && deckTitle?.trim() && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleGenerate();
+          }}
+          className="absolute top-2 left-2 opacity-0 hover:!opacity-100 peer-hover:opacity-100 group-hover/cover:opacity-100 flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-sm px-3 py-1.5 text-xs font-medium text-white hover:bg-black/80 transition-all"
+        >
+          <Sparkles size={12} />
+          Regenerate
+        </button>
+      )}
+
       {/* Remove button */}
-      {value && !uploading && (
+      {value && !busy && (
         <button
           type="button"
           onClick={() => onChange(null)}
-          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+          className="absolute top-2 right-2 opacity-0 group-hover/cover:opacity-100 w-6 h-6 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/80 transition-all"
         >
           <X size={12} />
         </button>

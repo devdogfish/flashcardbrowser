@@ -9,7 +9,7 @@ export default async function OnboardingPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) redirect("/sign-in");
+  if (!session) redirect("/auth/sign-in");
 
   const user = session.user as {
     dalEmail?: string | null;

@@ -99,7 +99,8 @@ export default function SignInPage() {
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
                 <Link
-                  href="/forgot-password"
+                  href="/auth/forgot-password"
+                  tabIndex={-1}
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Forgot password?
@@ -119,7 +120,7 @@ export default function SignInPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1}
                 >
                   {showPassword ? (
@@ -164,7 +165,7 @@ export default function SignInPage() {
         <p className="text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
           <Link
-            href="/sign-up"
+            href="/auth/sign-up"
             className="text-foreground underline underline-offset-4 hover:no-underline"
           >
             Sign up

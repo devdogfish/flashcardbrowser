@@ -20,7 +20,7 @@ export function CtaSection() {
         <p className="text-muted-foreground mb-8 max-w-xs mx-auto text-sm leading-relaxed">
           Sign in with your Dalhousie Microsoft account. Takes about 30 seconds.
         </p>
-        <Link href="/sign-up">
+        <Link href="/auth/sign-up">
           <Button
             size="lg"
             className="px-10 bg-gold text-[oklch(0.12_0_0)] hover:bg-gold/90 font-medium"
@@ -31,7 +31,7 @@ export function CtaSection() {
         <p className="text-xs text-muted-foreground mt-4">
           Already have an account?{' '}
           <Link
-            href="/sign-in"
+            href="/auth/sign-in"
             className="underline underline-offset-4 hover:text-foreground transition-colors"
           >
             Sign in

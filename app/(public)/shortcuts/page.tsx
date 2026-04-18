@@ -36,7 +36,7 @@ const sections = [
 
 export default async function ShortcutsPage() {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) redirect("/sign-in");
+  if (!session) redirect("/auth/sign-in");
 
   return (
     <main className="min-h-svh flex items-center justify-center px-5 py-16">

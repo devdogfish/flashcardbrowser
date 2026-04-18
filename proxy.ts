@@ -3,29 +3,42 @@ import { auth } from "@/lib/auth";
 
 // Routes that never require auth or Dal verification
 const PUBLIC_PREFIXES = [
-  "/sign-in",
-  "/sign-up",
-  "/forgot-password",
-  "/reset-password",
+  "/auth",
   "/onboarding",
   "/api/auth",
   "/api/verify-dal",
+  "/api/decks",
+  "/api/collections",
   "/_next",
   "/favicon",
   "/manifest",
 ];
 
+// Exact-match public paths (and their sub-paths via prefix in PUBLIC_PREFIXES)
+const PUBLIC_PATHS = ["/", "/tips", "/docs"];
+
+// Prefix-based public routes (browseable without auth)
+const PUBLIC_BROWSEABLE = ["/decks", "/public"];
+
 function isPublicRoute(pathname: string): boolean {
-  return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  return (
+    PUBLIC_PATHS.includes(pathname) ||
+    PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
+    PUBLIC_BROWSEABLE.some((prefix) => pathname.startsWith(prefix))
+  );
 }
 
 export async function proxy(request: NextRequest) {
-  // Auth temporarily disabled during development — re-enable by removing this line
-  return NextResponse.next();
-
   const { pathname } = request.nextUrl;
 
-  if (isPublicRoute(pathname)) return NextResponse.next();
+  if (isPublicRoute(pathname)) {
+    // Redirect authenticated users away from /auth/* pages
+    if (pathname.startsWith("/auth")) {
+      const session = await auth.api.getSession({ headers: request.headers });
+      if (session) return NextResponse.redirect(new URL("/", request.url));
+    }
+    return NextResponse.next();
+  }
 
   // Get session via better-auth cookie helper (no DB hit)
   const session = await auth.api.getSession({
@@ -33,7 +46,7 @@ export async function proxy(request: NextRequest) {
   });
 
   if (!session) {
-    return NextResponse.redirect(new URL("/sign-in", request.url));
+    return NextResponse.redirect(new URL("/auth/sign-in", request.url));
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

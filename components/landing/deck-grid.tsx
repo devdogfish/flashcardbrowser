@@ -69,7 +69,7 @@ export function DeckGrid({ decks }: { decks: FeaturedDeck[] }) {
         viewport={{ once: true, margin: '-40px' }}
         className="grid grid-cols-2 sm:grid-cols-3 gap-4"
       >
-        {decks.map((deck) => {
+        {decks.map((deck, index) => {
           const gradient = cardGradient(deck.id)
           return (
             <motion.div key={deck.id} variants={card}>
@@ -81,7 +81,7 @@ export function DeckGrid({ decks }: { decks: FeaturedDeck[] }) {
                   className="group relative aspect-[3/2] rounded-xl overflow-hidden border border-border/50 shadow-sm"
                 >
                   {deck.coverImage ? (
-                    <Image src={deck.coverImage} alt={deck.title} fill className="object-cover" />
+                    <Image src={deck.coverImage} alt={deck.title} fill className="object-cover" priority={index < 2} />
                   ) : (
                     <div className={`w-full h-full bg-linear-to-br ${gradient}`} />
                   )}

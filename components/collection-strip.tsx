@@ -18,6 +18,7 @@ import {
 export interface CollectionData {
   id: string;
   name: string;
+  courseCode?: string | null;
   deckIds: string[];
 }
 
@@ -103,8 +104,8 @@ export function CollectionStrip({
         All
       </button>
 
-      {/* Collection chips */}
-      {collections.map((c) => (
+      {/* Collection chips — personal only, course collections handled separately */}
+      {collections.filter((c) => !c.courseCode).map((c) => (
         <div key={c.id} className="group relative shrink-0 flex items-center">
           {renamingId === c.id ? (
             <form onSubmit={(e) => handleRenameSubmit(e, c.id)}>

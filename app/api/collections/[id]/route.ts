@@ -1,43 +1,19 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
-
-// ── Auth helper ──────────────────────────────────────────────────────────────
-
-async function authenticate(request: Request) {
-  const authHeader = request.headers.get("authorization")
-  if (!authHeader?.startsWith("Bearer ")) {
-    return { error: NextResponse.json({ error: "Missing or invalid Authorization header" }, { status: 401 }) }
-  }
-
-  const rawKey = authHeader.slice(7).trim()
-  const apiKey = await prisma.apiKey.findUnique({
-    where: { key: rawKey },
-    select: { id: true, userId: true },
-  })
-
-  if (!apiKey) {
-    return { error: NextResponse.json({ error: "Invalid API key" }, { status: 401 }) }
-  }
-
-  prisma.apiKey.update({
-    where: { id: apiKey.id },
-    data: { lastUsedAt: new Date() },
-  }).catch(() => {})
-
-  return { userId: apiKey.userId }
-}
+import { authenticate, optionalAuthenticate } from "@/lib/api-auth"
 
 // ── GET /api/collections/[id] ────────────────────────────────────────────────
 // Get a single collection with its decks.
+//
+// Course collections (courseCode != null) are globally readable — any valid
+// API key may access them. Personal collections require the owner's API key.
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = await authenticate(request)
-  if ("error" in auth) return auth.error
-
   const { id } = await params
+  const userId = await optionalAuthenticate(request)
 
   const collection = await prisma.collection.findUnique({
     where: { id },
@@ -50,8 +26,10 @@ export async function GET(
               title: true,
               description: true,
               visibility: true,
+              coverImage: true,
               createdAt: true,
               _count: { select: { cards: true } },
+              owner: { select: { name: true } },
             },
           },
         },
@@ -64,13 +42,20 @@ export async function GET(
     return NextResponse.json({ error: "Collection not found" }, { status: 404 })
   }
 
-  if (collection.userId !== auth.userId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  const isCourseCollection = collection.courseCode !== null
+
+  // Personal collections are owner-only
+  if (!isCourseCollection) {
+    if (!userId || collection.userId !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
   }
+  // Course collections are publicly readable — no ownership check needed
 
   return NextResponse.json({
     id: collection.id,
     name: collection.name,
+    courseCode: collection.courseCode,
     createdAt: collection.createdAt,
     updatedAt: collection.updatedAt,
     decks: collection.decks.map(({ deck, addedAt }) => ({
@@ -78,14 +63,16 @@ export async function GET(
       title: deck.title,
       description: deck.description,
       visibility: deck.visibility,
+      coverImage: deck.coverImage,
       cardCount: deck._count.cards,
+      ownerName: deck.owner?.name ?? null,
       addedAt,
     })),
   })
 }
 
 // ── PATCH /api/collections/[id] ──────────────────────────────────────────────
-// Rename a collection.
+// Rename a collection. Caller must be the owner.
 //
 // Body: { name: string }
 
@@ -100,13 +87,12 @@ export async function PATCH(
 
   const existing = await prisma.collection.findUnique({
     where: { id },
-    select: { userId: true },
+    select: { userId: true, courseCode: true },
   })
 
   if (!existing) {
     return NextResponse.json({ error: "Collection not found" }, { status: 404 })
   }
-
   if (existing.userId !== auth.userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
@@ -130,12 +116,14 @@ export async function PATCH(
   return NextResponse.json({
     id: updated.id,
     name: updated.name,
+    courseCode: updated.courseCode,
     updatedAt: updated.updatedAt,
   })
 }
 
 // ── DELETE /api/collections/[id] ─────────────────────────────────────────────
 // Delete a collection. Decks are NOT deleted — they are simply unlinked.
+// Caller must be the owner.
 
 export async function DELETE(
   request: Request,
@@ -154,7 +142,6 @@ export async function DELETE(
   if (!existing) {
     return NextResponse.json({ error: "Collection not found" }, { status: 404 })
   }
-
   if (existing.userId !== auth.userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }

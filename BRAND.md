@@ -1,10 +1,10 @@
-# Flash — Brand Philosophy
+# Flashcardbrowser — Brand Philosophy
 
 ## Core Idea
 
-Flash is a flashcard app that gets out of your way.
+Flashcardbrowser is a flashcard app that gets out of your way.
 
-Most study tools pile on features — streaks, gamification, dashboards, progress bars — until the act of learning is buried under the product. Flash inverts that. The card is the whole experience. Everything else either serves the card or disappears.
+Most study tools pile on features — streaks, gamification, dashboards, progress bars — until the act of learning is buried under the product. Flashcardbrowser inverts that. The card is the whole experience. Everything else either serves the card or disappears.
 
 ## Design Principles
 
@@ -22,8 +22,8 @@ Most study tools pile on features — streaks, gamification, dashboards, progres
 - Color: Neutral base with OKLCH variables — accurate, perceptually uniform
 - Motion: Spring physics (Framer Motion) — natural, not mechanical
 - Atmosphere: Canvas-rendered fog overlay, reactive to card movement
-- Name: *Flash* — quick, bright, a card flipping, a moment of recognition
+- Name: *Flashcardbrowser* — quick, bright, a card flipping, a moment of recognition
 
-## What Flash Is Not
+## What Flashcardbrowser Is Not
 
-Flash is not a spaced-repetition system, a social platform, a course library, or a productivity suite. It is a single thing done well: showing you a card, asking you to think, and moving on.
+Flashcardbrowser is not a spaced-repetition system, a social platform, a course library, or a productivity suite. It is a single thing done well: showing you a card, asking you to think, and moving on.

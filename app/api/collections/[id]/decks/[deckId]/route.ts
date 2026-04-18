@@ -1,37 +1,15 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
-
-// ── Auth helper ──────────────────────────────────────────────────────────────
-
-async function authenticate(request: Request) {
-  const authHeader = request.headers.get("authorization")
-  if (!authHeader?.startsWith("Bearer ")) {
-    return { error: NextResponse.json({ error: "Missing or invalid Authorization header" }, { status: 401 }) }
-  }
-
-  const rawKey = authHeader.slice(7).trim()
-  const apiKey = await prisma.apiKey.findUnique({
-    where: { key: rawKey },
-    select: { id: true, userId: true },
-  })
-
-  if (!apiKey) {
-    return { error: NextResponse.json({ error: "Invalid API key" }, { status: 401 }) }
-  }
-
-  prisma.apiKey.update({
-    where: { id: apiKey.id },
-    data: { lastUsedAt: new Date() },
-  }).catch(() => {})
-
-  return { userId: apiKey.userId }
-}
+import { authenticate } from "@/lib/api-auth"
 
 // ── PUT /api/collections/[id]/decks/[deckId] ─────────────────────────────────
 // Add a deck to a collection.
 //
-// Each deck may belong to only ONE collection. If the deck is already in
-// another collection it is moved automatically (old link removed first).
+// A deck may belong to at most one PERSONAL collection at a time. When moved
+// to a different personal collection, it is automatically removed from the
+// previous one. Course collections (courseCode != null) are tracked separately
+// and are never affected by personal-collection moves.
+//
 // Idempotent: adding a deck that is already in this collection is a no-op.
 
 export async function PUT(
@@ -43,21 +21,18 @@ export async function PUT(
 
   const { id: collectionId, deckId } = await params
 
-  // Verify the collection exists and belongs to this user
   const collection = await prisma.collection.findUnique({
     where: { id: collectionId },
-    select: { userId: true },
+    select: { userId: true, courseCode: true },
   })
 
   if (!collection) {
     return NextResponse.json({ error: "Collection not found" }, { status: 404 })
   }
-
   if (collection.userId !== auth.userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  // Verify the deck exists and belongs to this user
   const deck = await prisma.deck.findUnique({
     where: { id: deckId },
     select: { ownerId: true },
@@ -66,20 +41,23 @@ export async function PUT(
   if (!deck) {
     return NextResponse.json({ error: "Deck not found" }, { status: 404 })
   }
-
   if (deck.ownerId !== auth.userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  // Enforce one-collection-per-deck: remove from any other collection first
-  await prisma.collectionDeck.deleteMany({
-    where: {
-      deckId,
-      NOT: { collectionId },
-    },
-  })
+  // When adding to a personal collection, remove from any other personal
+  // collection first (enforce one-personal-collection-per-deck). Course
+  // collection memberships are left untouched.
+  if (collection.courseCode === null) {
+    await prisma.collectionDeck.deleteMany({
+      where: {
+        deckId,
+        NOT: { collectionId },
+        collection: { courseCode: null },
+      },
+    })
+  }
 
-  // Add to this collection (upsert = idempotent)
   await prisma.collectionDeck.upsert({
     where: { collectionId_deckId: { collectionId, deckId } },
     create: { collectionId, deckId },
@@ -91,6 +69,7 @@ export async function PUT(
 
 // ── DELETE /api/collections/[id]/decks/[deckId] ───────────────────────────────
 // Remove a deck from a collection. The deck itself is NOT deleted.
+// Caller must own the collection.
 
 export async function DELETE(
   request: Request,
@@ -101,7 +80,6 @@ export async function DELETE(
 
   const { id: collectionId, deckId } = await params
 
-  // Verify the collection exists and belongs to this user
   const collection = await prisma.collection.findUnique({
     where: { id: collectionId },
     select: { userId: true },
@@ -110,7 +88,6 @@ export async function DELETE(
   if (!collection) {
     return NextResponse.json({ error: "Collection not found" }, { status: 404 })
   }
-
   if (collection.userId !== auth.userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }

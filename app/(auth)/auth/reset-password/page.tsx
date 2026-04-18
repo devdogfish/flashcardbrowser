@@ -42,7 +42,7 @@ function ResetPasswordForm() {
     if (error) {
       setError(error.message ?? 'Failed to reset password.')
     } else {
-      router.push('/sign-in?reset=success')
+      router.push('/auth/sign-in?reset=success')
     }
 
     setPending(false)
@@ -54,7 +54,7 @@ function ResetPasswordForm() {
         <div className="bg-card/70 backdrop-blur-md border border-border rounded-2xl p-8 text-center space-y-3">
           <p className="text-lg font-medium">Invalid link</p>
           <p className="text-sm text-muted-foreground">This reset link is invalid or has expired.</p>
-          <Link href="/forgot-password" className="inline-block text-sm underline underline-offset-4 hover:no-underline">
+          <Link href="/auth/forgot-password" className="inline-block text-sm underline underline-offset-4 hover:no-underline">
             Request a new link
           </Link>
         </div>

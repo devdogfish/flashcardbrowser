@@ -10,7 +10,7 @@ export default async function StudyRoute({
   searchParams: Promise<{ decks?: string }>
 }) {
   const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) redirect("/sign-in")
+  if (!session) redirect("/auth/sign-in")
 
   const { decks: decksParam } = await searchParams
   const deckIds = decksParam?.split(",").filter(Boolean) ?? []
@@ -19,7 +19,7 @@ export default async function StudyRoute({
 
   const decks = await prisma.deck.findMany({
     where: { id: { in: deckIds } },
-    include: { cards: { orderBy: { position: "asc" } } },
+    include: { cards: { where: { hidden: false }, orderBy: { position: "asc" } } },
     orderBy: { createdAt: "asc" },
   })
 

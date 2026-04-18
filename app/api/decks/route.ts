@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { put } from "@vercel/blob"
+import { authenticate } from "@/lib/api-auth"
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -13,6 +14,7 @@ interface DeckBody {
   name: string
   description?: string
   coverImage?: string
+  visibility?: "PUBLIC" | "PRIVATE"
   cards: CardBody[]
 }
 
@@ -34,32 +36,47 @@ async function mirrorImage(url: string): Promise<string | null> {
   }
 }
 
-// ── POST /api/decks ──────────────────────────────────────────────────────────
+// ── GET /api/decks ───────────────────────────────────────────────────────────
+// List all decks owned by the authenticated user.
 
-export async function POST(request: Request) {
-  // Auth via Bearer API key
-  const authHeader = request.headers.get("authorization")
-  if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json({ error: "Missing or invalid Authorization header" }, { status: 401 })
-  }
+export async function GET(request: Request) {
+  const auth = await authenticate(request)
+  if ("error" in auth) return auth.error
 
-  const rawKey = authHeader.slice(7).trim()
-  const apiKey = await prisma.apiKey.findUnique({
-    where: { key: rawKey },
-    select: { id: true, userId: true },
+  const decks = await prisma.deck.findMany({
+    where: { ownerId: auth.userId },
+    include: {
+      _count: { select: { cards: true } },
+      collections: { select: { collectionId: true } },
+    },
+    orderBy: { updatedAt: "desc" },
   })
 
-  if (!apiKey) {
-    return NextResponse.json({ error: "Invalid API key" }, { status: 401 })
-  }
+  return NextResponse.json({
+    decks: decks.map((d) => ({
+      id: d.id,
+      title: d.title,
+      description: d.description,
+      visibility: d.visibility,
+      coverImage: d.coverImage,
+      cardCount: d._count.cards,
+      collectionIds: d.collections.map((c) => c.collectionId),
+      createdAt: d.createdAt,
+      updatedAt: d.updatedAt,
+    })),
+  })
+}
 
-  // Update lastUsedAt in the background
-  prisma.apiKey.update({
-    where: { id: apiKey.id },
-    data: { lastUsedAt: new Date() },
-  }).catch(() => {})
+// ── POST /api/decks ──────────────────────────────────────────────────────────
+// Create a new deck with cards.
+//
+// Body: { name, description?, coverImage?, visibility?: "PUBLIC"|"PRIVATE", cards[] }
+// Returns: { id, title, cardCount, visibility, editUrl }
 
-  // Parse body
+export async function POST(request: Request) {
+  const auth = await authenticate(request)
+  if ("error" in auth) return auth.error
+
   let body: DeckBody
   try {
     body = await request.json()
@@ -67,12 +84,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
   }
 
-  // Validate
   if (typeof body.name !== "string" || !body.name.trim()) {
     return NextResponse.json({ error: "Missing required field: name" }, { status: 422 })
   }
   if (!Array.isArray(body.cards) || body.cards.length === 0) {
     return NextResponse.json({ error: "cards must be a non-empty array" }, { status: 422 })
+  }
+  if (body.visibility && body.visibility !== "PUBLIC" && body.visibility !== "PRIVATE") {
+    return NextResponse.json({ error: "visibility must be \"PUBLIC\" or \"PRIVATE\"" }, { status: 422 })
   }
 
   for (let i = 0; i < body.cards.length; i++) {
@@ -85,35 +104,30 @@ export async function POST(request: Request) {
     }
   }
 
-  // Mirror images in parallel
   const coverImageUrl = body.coverImage ? await mirrorImage(body.coverImage) : null
   const cardImageUrls = await Promise.all(
     body.cards.map((c) => (c.back.image ? mirrorImage(c.back.image) : Promise.resolve(null)))
   )
 
-  // Create deck
   const deck = await prisma.deck.create({
     data: {
-      ownerId: apiKey.userId,
+      ownerId: auth.userId,
       title: body.name.trim(),
       description: body.description?.trim() || null,
-      visibility: "PRIVATE",
+      visibility: body.visibility ?? "PRIVATE",
       coverImage: coverImageUrl,
     },
   })
 
-  // Create cards
   await prisma.flashcard.createMany({
     data: body.cards.map((card, i) => {
-      const question =
-        card.front.description?.trim()
-          ? `${card.front.title}\n\n${card.front.description}`
-          : card.front.title
+      const question = card.front.description?.trim()
+        ? `${card.front.title}\n\n${card.front.description}`
+        : card.front.title
 
-      const answer =
-        card.back.description?.trim()
-          ? `${card.back.title}\n\n${card.back.description}`
-          : card.back.title
+      const answer = card.back.description?.trim()
+        ? `${card.back.title}\n\n${card.back.description}`
+        : card.back.title
 
       return {
         deckId: deck.id,
@@ -132,6 +146,7 @@ export async function POST(request: Request) {
       id: deck.id,
       title: deck.title,
       cardCount: body.cards.length,
+      visibility: deck.visibility,
       editUrl: `${baseUrl}/decks/${deck.id}/edit`,
     },
     { status: 201 },

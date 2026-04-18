@@ -1,0 +1,372 @@
+import {
+  LLM_PROMPT,
+  DECKS_LIST_RESPONSE,
+  DECK_CREATE_BODY, DECK_CREATE_RESPONSE, DECK_CREATE_CURL, DECK_CREATE_FETCH,
+  DECK_GET_RESPONSE,
+  DECK_PATCH_BODY, DECK_PATCH_RESPONSE,
+  CARDS_LIST_RESPONSE,
+  CARD_CREATE_BODY, CARD_CREATE_RESPONSE,
+  CARD_PATCH_BODY, CARD_PATCH_RESPONSE,
+  COLLECTIONS_LIST_RESPONSE, COLLECTIONS_COURSES_RESPONSE,
+  COLLECTION_GET_RESPONSE,
+  COLLECTION_CREATE_BODY, COLLECTION_CREATE_RESPONSE,
+  COLLECTION_PATCH_BODY, COLLECTION_PATCH_RESPONSE,
+  COLLECTION_ADD_DECK_RESPONSE,
+} from "@/content/docs-samples";
+
+Flashcardbrowser turns any topic into a set of flashcards, and you don't need to write a single line of code to do it. You can ask any AI assistant to generate a deck for you and upload the result in seconds. If you're a developer or want to automate things, there's also a full REST API you can call from scripts, tools, or your own apps.
+
+## Generate with any AI
+
+Copy the prompt below, replace `[TOPIC]` with your subject, paste it into any AI (ChatGPT, Claude, Gemini — any of them), then upload the JSON result on the [import page](/decks/import).
+
+<CodeBlock label="Prompt template" code={LLM_PROMPT} />
+
+## Authentication
+
+All API endpoints are authenticated with Bearer API keys. Generate a key in [Settings](/settings) under **API Keys**, then pass it as an `Authorization` header on every request.
+
+```
+Authorization: Bearer YOUR_API_KEY
+```
+
+Keys are scoped to your account. All write operations (create, update, delete) require a valid key. Some read operations (fetching public decks and course collections) work without authentication.
+
+## Decks
+
+### List your decks
+
+<EndpointCard method="GET" path="/api/decks" auth="required" />
+
+Returns all decks owned by your account, sorted by most recently updated.
+
+<CodeBlock label="Response (200)" code={DECKS_LIST_RESPONSE} />
+
+<ErrorTable errors={[
+  { code: "401", message: "Missing or invalid API key" },
+]} />
+
+---
+
+### Create a deck
+
+<EndpointCard method="POST" path="/api/decks" auth="required" />
+
+Creates a new deck with cards in a single request. External image URLs in `coverImage` and `back.image` are mirrored to storage automatically.
+
+<FieldTable fields={[
+  { field: "name",                    type: "string",     required: true,  note: "Deck title" },
+  { field: "description",             type: "string",     required: false, note: "Short description" },
+  { field: "visibility",              type: "enum",       required: false, note: "\"PUBLIC\" or \"PRIVATE\" — defaults to \"PRIVATE\"" },
+  { field: "coverImage",              type: "string URL", required: false, note: "Deck cover — mirrored to storage on import" },
+  { field: "cards[].front.title",     type: "string",     required: true,  note: "Question or prompt shown on the front" },
+  { field: "cards[].front.description", type: "string",   required: false, note: "Extra context on the front" },
+  { field: "cards[].back.title",      type: "string",     required: true,  note: "Answer shown on the back" },
+  { field: "cards[].back.description", type: "string",    required: false, note: "Explanation or additional detail" },
+  { field: "cards[].back.image",      type: "string URL", required: false, note: "Card image — mirrored to storage on import" },
+]} />
+
+<CodeBlock label="Request body" code={DECK_CREATE_BODY} />
+<CodeBlock label="Response (201)" code={DECK_CREATE_RESPONSE} />
+<CodeBlock label="curl" code={DECK_CREATE_CURL} />
+<CodeBlock label="fetch" code={DECK_CREATE_FETCH} />
+
+<ErrorTable errors={[
+  { code: "400", message: "Invalid JSON body" },
+  { code: "401", message: "Missing or invalid API key" },
+  { code: "422", message: "Missing required field — see error message for details" },
+]} />
+
+---
+
+### Get a deck
+
+<EndpointCard method="GET" path="/api/decks/:id" auth="optional" />
+
+Returns a deck and its full card list. Public decks are accessible without authentication. Private decks require the owner's API key.
+
+<CodeBlock label="Response (200)" code={DECK_GET_RESPONSE} />
+
+> **Note on card format:** Cards in this response use `question`/`answer` fields. This differs from the `front`/`back` structure used when *creating* a deck — see the [format note](#cards) in the Cards section.
+
+<ErrorTable errors={[
+  { code: "401", message: "Deck is private — provide the owner's API key" },
+  { code: "404", message: "Deck not found" },
+]} />
+
+---
+
+### Update a deck
+
+<EndpointCard method="PATCH" path="/api/decks/:id" auth="required" />
+
+Update one or more metadata fields on a deck you own. All body fields are optional — send only what you want to change.
+
+<FieldTable fields={[
+  { field: "title",       type: "string", required: false, note: "New deck title" },
+  { field: "description", type: "string", required: false, note: "New description — send null to clear" },
+  { field: "visibility",  type: "enum",   required: false, note: "\"PUBLIC\" or \"PRIVATE\"" },
+  { field: "coverImage",  type: "string", required: false, note: "New cover image URL — send null to clear" },
+]} />
+
+<CodeBlock label="Request body" code={DECK_PATCH_BODY} />
+<CodeBlock label="Response (200)" code={DECK_PATCH_RESPONSE} />
+
+<ErrorTable errors={[
+  { code: "401", message: "Missing or invalid API key" },
+  { code: "403", message: "Deck belongs to a different user" },
+  { code: "404", message: "Deck not found" },
+  { code: "422", message: "No valid fields to update" },
+]} />
+
+---
+
+### Delete a deck
+
+<EndpointCard method="DELETE" path="/api/decks/:id" auth="required" />
+
+Permanently deletes a deck and all its cards. This cannot be undone.
+
+Returns `204 No Content` on success.
+
+<ErrorTable errors={[
+  { code: "401", message: "Missing or invalid API key" },
+  { code: "403", message: "Deck belongs to a different user" },
+  { code: "404", message: "Deck not found" },
+]} />
+
+---
+
+## Cards
+
+> **Format note:** When *creating a deck* (`POST /api/decks`), cards use a `front`/`back` structure. When reading or writing *individual cards*, they use `question`/`answer` directly.
+>
+> | Context | Shape |
+> |---------|-------|
+> | `POST /api/decks` — bulk create | `{ front: { title, description? }, back: { title, description?, image? } }` |
+> | `POST /api/decks/:id/cards` — add one | `{ question, answer, imageUrl? }` |
+> | `GET /api/decks/:id` — returned cards | `{ id, question, answer, imageUrl, position }` |
+
+### List cards
+
+<EndpointCard method="GET" path="/api/decks/:id/cards" auth="optional" />
+
+Lists all visible cards in a deck. Same auth rules as [Get a deck](#get-a-deck): public decks need no auth, private decks require the owner's key. Hidden cards (flagged by the community) are excluded.
+
+<CodeBlock label="Response (200)" code={CARDS_LIST_RESPONSE} />
+
+<ErrorTable errors={[
+  { code: "401", message: "Deck is private — provide the owner's API key" },
+  { code: "404", message: "Deck not found" },
+]} />
+
+---
+
+### Add a card
+
+<EndpointCard method="POST" path="/api/decks/:id/cards" auth="required" />
+
+Adds a single card to a deck you own. If `position` is omitted the card is appended after the last existing card.
+
+<FieldTable fields={[
+  { field: "question", type: "string", required: true,  note: "Front text" },
+  { field: "answer",   type: "string", required: true,  note: "Back text" },
+  { field: "imageUrl", type: "string", required: false, note: "Card image URL — send null to clear" },
+  { field: "position", type: "number", required: false, note: "Zero-based position — defaults to last" },
+]} />
+
+<CodeBlock label="Request body" code={CARD_CREATE_BODY} />
+<CodeBlock label="Response (201)" code={CARD_CREATE_RESPONSE} />
+
+<ErrorTable errors={[
+  { code: "401", message: "Missing or invalid API key" },
+  { code: "403", message: "Deck belongs to a different user" },
+  { code: "404", message: "Deck not found" },
+  { code: "422", message: "Missing required field: question or answer" },
+]} />
+
+---
+
+### Update a card
+
+<EndpointCard method="PATCH" path="/api/decks/:id/cards/:cardId" auth="required" />
+
+Updates a card's question, answer, or image. All fields are optional — send only what you want to change.
+
+<FieldTable fields={[
+  { field: "question", type: "string", required: false, note: "New front text" },
+  { field: "answer",   type: "string", required: false, note: "New back text" },
+  { field: "imageUrl", type: "string", required: false, note: "New image URL — send null to remove" },
+]} />
+
+<CodeBlock label="Request body" code={CARD_PATCH_BODY} />
+<CodeBlock label="Response (200)" code={CARD_PATCH_RESPONSE} />
+
+<ErrorTable errors={[
+  { code: "401", message: "Missing or invalid API key" },
+  { code: "403", message: "Deck belongs to a different user" },
+  { code: "404", message: "Deck or card not found" },
+  { code: "422", message: "No valid fields to update" },
+]} />
+
+---
+
+### Delete a card
+
+<EndpointCard method="DELETE" path="/api/decks/:id/cards/:cardId" auth="required" />
+
+Permanently deletes a card. Returns `204 No Content` on success.
+
+<ErrorTable errors={[
+  { code: "401", message: "Missing or invalid API key" },
+  { code: "403", message: "Deck belongs to a different user" },
+  { code: "404", message: "Deck or card not found" },
+]} />
+
+---
+
+## Collections
+
+Collections are groups of decks. There are two kinds:
+
+- **Personal collections** — created by you, visible only to your account. `courseCode` is `null`.
+- **Course collections** — admin-managed groups linked to a Dal course code (e.g. `"INFO 2390"`). Publicly readable by anyone.
+
+A deck can belong to at most one personal collection and any number of course collections simultaneously.
+
+### List collections
+
+<EndpointCard method="GET" path="/api/collections" auth="required" />
+
+Returns your personal collections (excluding course collections).
+
+<CodeBlock label="Response (200)" code={COLLECTIONS_LIST_RESPONSE} />
+
+To list all course collections globally, add `?type=course`:
+
+<EndpointCard method="GET" path="/api/collections?type=course" auth="required" />
+
+<CodeBlock label="Response (200)" code={COLLECTIONS_COURSES_RESPONSE} />
+
+<ErrorTable errors={[
+  { code: "401", message: "Missing or invalid API key" },
+]} />
+
+---
+
+### Create a collection
+
+<EndpointCard method="POST" path="/api/collections" auth="required" />
+
+Creates a new personal collection.
+
+<FieldTable fields={[
+  { field: "name", type: "string", required: true, note: "Collection name" },
+]} />
+
+<CodeBlock label="Request body" code={COLLECTION_CREATE_BODY} />
+<CodeBlock label="Response (201)" code={COLLECTION_CREATE_RESPONSE} />
+
+<ErrorTable errors={[
+  { code: "401", message: "Missing or invalid API key" },
+  { code: "422", message: "Missing required field: name" },
+]} />
+
+---
+
+### Get a collection
+
+<EndpointCard method="GET" path="/api/collections/:id" auth="optional" />
+
+Returns a collection and its full deck list. Course collections are publicly readable — no auth needed. Personal collections require the owner's API key.
+
+<CodeBlock label="Response (200)" code={COLLECTION_GET_RESPONSE} />
+
+<ErrorTable errors={[
+  { code: "403", message: "Personal collection — provide the owner's API key" },
+  { code: "404", message: "Collection not found" },
+]} />
+
+---
+
+### Rename a collection
+
+<EndpointCard method="PATCH" path="/api/collections/:id" auth="required" />
+
+<FieldTable fields={[
+  { field: "name", type: "string", required: true, note: "New collection name" },
+]} />
+
+<CodeBlock label="Request body" code={COLLECTION_PATCH_BODY} />
+<CodeBlock label="Response (200)" code={COLLECTION_PATCH_RESPONSE} />
+
+<ErrorTable errors={[
+  { code: "401", message: "Missing or invalid API key" },
+  { code: "403", message: "Collection belongs to a different user" },
+  { code: "404", message: "Collection not found" },
+  { code: "422", message: "Missing required field: name" },
+]} />
+
+---
+
+### Delete a collection
+
+<EndpointCard method="DELETE" path="/api/collections/:id" auth="required" />
+
+Deletes the collection. Decks inside are **not** deleted — they are simply unlinked. Returns `204 No Content` on success.
+
+<ErrorTable errors={[
+  { code: "401", message: "Missing or invalid API key" },
+  { code: "403", message: "Collection belongs to a different user" },
+  { code: "404", message: "Collection not found" },
+]} />
+
+---
+
+### Add deck to collection
+
+<EndpointCard method="PUT" path="/api/collections/:id/decks/:deckId" auth="required" />
+
+Adds a deck to a collection. Both the collection and the deck must belong to your account. Idempotent — adding a deck already in the collection is a no-op.
+
+If the deck is already in another **personal** collection it is moved automatically. Course collection memberships are never affected.
+
+<CodeBlock label="Response (200)" code={COLLECTION_ADD_DECK_RESPONSE} />
+
+<ErrorTable errors={[
+  { code: "401", message: "Missing or invalid API key" },
+  { code: "403", message: "Collection or deck belongs to a different user" },
+  { code: "404", message: "Collection or deck not found" },
+]} />
+
+---
+
+### Remove deck from collection
+
+<EndpointCard method="DELETE" path="/api/collections/:id/decks/:deckId" auth="required" />
+
+Removes a deck from a collection. The deck itself is **not** deleted. Returns `204 No Content` on success.
+
+<ErrorTable errors={[
+  { code: "401", message: "Missing or invalid API key" },
+  { code: "403", message: "Collection belongs to a different user" },
+  { code: "404", message: "Deck is not in this collection" },
+]} />
+
+---
+
+## Status codes
+
+All endpoints follow standard HTTP conventions.
+
+| Code | Meaning |
+|------|---------|
+| `200` | Success |
+| `201` | Created |
+| `204` | Success — no body returned |
+| `400` | Invalid JSON body |
+| `401` | Missing or invalid API key |
+| `403` | Forbidden — resource belongs to a different user |
+| `404` | Resource not found |
+| `422` | Validation error — check the `error` field in the response body for details |
+| `5xx` | Server error — wait a moment and retry |

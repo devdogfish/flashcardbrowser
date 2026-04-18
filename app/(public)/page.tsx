@@ -3,7 +3,6 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { Button } from "@/components/ui/button";
 import { HeroSection } from "@/components/landing/hero-section";
 import { UspSection } from "@/components/landing/usp-section";
 import { FeaturesSection } from "@/components/landing/features-section";
@@ -33,36 +32,6 @@ export default async function LandingPage() {
 
   return (
     <main className="min-h-svh">
-      {/* Marketing nav — visitors only */}
-      {!session && (
-        <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 h-14 border-b border-border/40 bg-background/80 backdrop-blur-md">
-          <Link href="/" className="text-sm font-medium tracking-tight">
-            flashcardbrowser
-          </Link>
-          <div className="flex items-center gap-1">
-            <Link href="/decks">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs text-muted-foreground"
-              >
-                Browse decks
-              </Button>
-            </Link>
-            <Link href="/sign-in">
-              <Button variant="ghost" size="sm" className="text-xs">
-                Sign in
-              </Button>
-            </Link>
-            <Link href="/sign-up">
-              <Button size="sm" className="text-xs shadow-none">
-                Get started
-              </Button>
-            </Link>
-          </div>
-        </nav>
-      )}
-
       <HeroSection session={!!session} />
       <UspSection />
       <FeaturesSection />
@@ -76,13 +45,19 @@ export default async function LandingPage() {
           flashcardbrowser
           <div className="flex items-center gap-4">
             <Link
+              href="/tips"
+              className="hover:text-foreground transition-colors"
+            >
+              Tips
+            </Link>
+            <Link
               href="/decks"
               className="hover:text-foreground transition-colors"
             >
               Browse decks
             </Link>
             <Link
-              href="/sign-in"
+              href="/auth/sign-in"
               className="hover:text-foreground transition-colors"
             >
               Sign in

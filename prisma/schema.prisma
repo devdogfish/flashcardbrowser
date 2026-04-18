@@ -32,6 +32,28 @@ enum ReviewResult {
   EASY
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
+enum DeckType {
+  PERSONAL
+  COURSE
+}
+
+enum SuggestionType {
+  ADD
+  EDIT
+  DELETE
+}
+
+enum SuggestionStatus {
+  PENDING
+  MERGED
+  REJECTED
+}
+
 // ---------------------------------------------------------------------------
 // Models
 // ---------------------------------------------------------------------------
@@ -50,6 +72,10 @@ model User {
   apiKeys          ApiKey[]
   schedules        CardSchedule[]
   collections      Collection[]
+  suggestions      CardSuggestion[]
+  suggestionFlags  SuggestionFlag[]
+  cardFlags        CardFlag[]
+  role             Role              @default(USER)
   emailVerified    Boolean           @default(false)
   image            String?
   updatedAt        DateTime          @updatedAt
@@ -95,27 +121,34 @@ model Deck {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
+  deckType    DeckType   @default(PERSONAL)
+  courseCode  String?
+
   owner       User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   cards       Flashcard[]
   favorites   DeckFavorite[]
   shares      DeckShare[]
   collections CollectionDeck[]
+  suggestions CardSuggestion[]
 
   @@index([ownerId])
   @@index([visibility])
+  @@index([courseCode])
 }
 
 model Collection {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  courseCode String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   decks CollectionDeck[]
 
   @@index([userId])
+  @@index([courseCode])
 }
 
 model CollectionDeck {
@@ -161,12 +194,14 @@ model Flashcard {
   answer    String
   imageUrl  String?
   position  Int      @default(0)
+  hidden    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   deck      Deck             @relation(fields: [deckId], references: [id], onDelete: Cascade)
   usage     FlashcardUsage[]
   schedules CardSchedule[]
+  flags     CardFlag[]
 
   @@index([deckId, position])
 }
@@ -262,3 +297,54 @@ model Verification {
   @@index([identifier])
   @@map("verification")
 }
+
+// ---------------------------------------------------------------------------
+// Community deck models
+// ---------------------------------------------------------------------------
+
+model CardSuggestion {
+  id           String           @id @default(cuid())
+  deckId       String
+  suggestorId  String
+  type         SuggestionType
+  targetCardId String?
+  question     String?
+  answer       String?
+  status       SuggestionStatus @default(PENDING)
+  aiApproved   Boolean          @default(true)
+  mergeAt      DateTime
+  createdAt    DateTime         @default(now())
+
+  deck      Deck             @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  suggestor User             @relation(fields: [suggestorId], references: [id], onDelete: Cascade)
+  flags     SuggestionFlag[]
+
+  @@index([deckId, status])
+  @@index([mergeAt, status])
+}
+
+model SuggestionFlag {
+  suggestionId String
+  userId       String
+  createdAt    DateTime @default(now())
+
+  suggestion CardSuggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([suggestionId, userId])
+}
+
+model CardFlag {
+  id        String    @id @default(cuid())
+  cardId    String
+  userId    String
+  reason    String?
+  createdAt DateTime  @default(now())
+
+  card Flashcard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([cardId, userId])
+  @@index([cardId])
+}
+

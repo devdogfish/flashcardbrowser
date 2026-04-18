@@ -59,7 +59,7 @@ export default async function DeckDetailPage({ params }: Props) {
   const deck = await prisma.deck.findUnique({
     where: { id },
     include: {
-      cards: { orderBy: { position: "asc" } },
+      cards: { where: { hidden: false }, orderBy: { position: "asc" } },
       owner: { select: { name: true } },
       shares: session ? { where: { userId: session.user.id } } : false,
     },
@@ -69,7 +69,7 @@ export default async function DeckDetailPage({ params }: Props) {
 
   // Access control for private decks
   if (deck.visibility === "PRIVATE") {
-    if (!session) redirect("/sign-in");
+    if (!session) redirect("/auth/sign-in");
     const isOwner = deck.ownerId === session.user.id;
     const isShared = (deck.shares as { userId: string }[] | false) !== false &&
       (deck.shares as { userId: string }[]).length > 0;
@@ -254,7 +254,7 @@ export default async function DeckDetailPage({ params }: Props) {
                     Try it out
                   </Button>
                 </Link>
-                <Link href="/sign-up">
+                <Link href="/auth/sign-up">
                   <Button variant="outline" className="w-full">
                     Sign up to track progress
                   </Button>
@@ -298,10 +298,10 @@ export default async function DeckDetailPage({ params }: Props) {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 justify-center">
-              <Link href="/sign-up">
+              <Link href="/auth/sign-up">
                 <Button className="w-full sm:w-auto">Track my progress</Button>
               </Link>
-              <Link href="/sign-in">
+              <Link href="/auth/sign-in">
                 <Button variant="outline" className="w-full sm:w-auto">
                   Sign in
                 </Button>

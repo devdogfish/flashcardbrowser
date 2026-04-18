@@ -3,9 +3,11 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import {
   Globe,
+  GraduationCap,
   Lock,
   Share2,
   Star,
@@ -13,6 +15,7 @@ import {
   Search,
   X,
   ArrowUpDown,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,7 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DeckCard, cardGradient } from "@/components/deck-card";
 import { CollectionStrip, type CollectionData } from "@/components/collection-strip";
-import { toggleFavorite } from "@/app/actions";
+import { toggleFavorite, regenerateAllCovers } from "@/app/actions";
 import { NewDeckButton } from "./new-deck-button";
 
 type SortKey = "newest" | "most-cards" | "alphabetical";
@@ -45,12 +48,20 @@ interface DeckData {
   collectionIds?: string[];
 }
 
+export interface CourseCollectionData {
+  id: string;
+  name: string;
+  courseCode: string;
+  deckCount: number;
+}
+
 interface DeckSelectionProps {
   userDecks: DeckData[];
   sharedDecks?: DeckData[];
   publicDecks: DeckData[];
   favoriteIds: string[];
   collections?: CollectionData[];
+  courseCollections?: CourseCollectionData[];
 }
 
 export function DeckSelection({
@@ -59,6 +70,7 @@ export function DeckSelection({
   publicDecks,
   favoriteIds,
   collections: initialCollections = [],
+  courseCollections = [],
 }: DeckSelectionProps) {
   const router = useRouter();
   const searchRef = useRef<HTMLInputElement>(null);
@@ -70,10 +82,9 @@ export function DeckSelection({
   );
   const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
   const [collections, setCollections] = useState<CollectionData[]>(initialCollections);
-  // visible count per section label
   const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({});
+  const [regenStatus, setRegenStatus] = useState<string | null>(null);
 
-  // Reset page sizes when collection filter changes
   useEffect(() => {
     setVisibleCounts({});
   }, [activeCollectionId]);
@@ -141,9 +152,7 @@ export function DeckSelection({
       } else {
         sorted.sort((a, b) => {
           if (!a.createdAt || !b.createdAt) return 0;
-          return (
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         });
       }
       return sorted;
@@ -155,9 +164,7 @@ export function DeckSelection({
     (decks: DeckData[]) => {
       const filtered = !query.trim()
         ? decks
-        : decks.filter((d) =>
-            d.title.toLowerCase().includes(query.toLowerCase()),
-          );
+        : decks.filter((d) => d.title.toLowerCase().includes(query.toLowerCase()));
       return sortDecks(filtered);
     },
     [query, sortDecks],
@@ -166,9 +173,7 @@ export function DeckSelection({
   const filterByCollection = useCallback(
     (decks: DeckData[]) => {
       if (!activeCollectionId) return decks;
-      return decks.filter((d) =>
-        d.collectionIds?.includes(activeCollectionId),
-      );
+      return decks.filter((d) => d.collectionIds?.includes(activeCollectionId));
     },
     [activeCollectionId],
   );
@@ -179,11 +184,7 @@ export function DeckSelection({
   );
 
   const favoriteDecks = filter(allDecks.filter((d) => localFavorites.has(d.id)));
-
-  // When a collection is active, only show user's own decks (+ favorites from own decks)
-  const filteredUserDecks = filter(
-    userDecks.filter((d) => !localFavorites.has(d.id)),
-  );
+  const filteredUserDecks = filter(userDecks.filter((d) => !localFavorites.has(d.id)));
   const filteredSharedDecks = activeCollectionId
     ? []
     : filter(sharedDecks.filter((d) => !localFavorites.has(d.id)));
@@ -232,7 +233,31 @@ export function DeckSelection({
 
   return (
     <>
-      {/* Collections strip */}
+      {/* Dal Courses — course collections as distinct cards */}
+      {courseCollections.length > 0 && (
+        <div className="mb-10">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-1.5">
+            <GraduationCap className="w-3.5 h-3.5" />
+            Dal Courses
+          </p>
+          <div className="flex flex-col gap-2">
+            {courseCollections.map((c) => (
+              <Link key={c.id} href={`/decks?course=${c.id}`}>
+                <div className="flex items-center gap-4 px-4 py-3 rounded-xl border border-border bg-muted/40 hover:border-border/80 hover:bg-muted/60 transition-colors group">
+                  <span className="shrink-0 inline-flex items-center text-[11px] leading-none font-bold px-2.5 py-1 rounded-full bg-foreground text-background">
+                    {c.courseCode}
+                  </span>
+                  <span className="flex-1 min-w-0 text-sm font-medium truncate">{c.name}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{c.deckCount} decks</span>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Personal collections strip */}
       {(collections.length > 0 || hasAnyDecks) && (
         <div className="mb-8">
           <CollectionStrip
@@ -262,18 +287,11 @@ export function DeckSelection({
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-9 gap-2 shrink-0">
                 <ArrowUpDown className="w-3.5 h-3.5" />
-                {sort === "newest"
-                  ? "Newest"
-                  : sort === "most-cards"
-                    ? "Most cards"
-                    : "A–Z"}
+                {sort === "newest" ? "Newest" : sort === "most-cards" ? "Most cards" : "A–Z"}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuRadioGroup
-                value={sort}
-                onValueChange={(v) => setSort(v as SortKey)}
-              >
+              <DropdownMenuRadioGroup value={sort} onValueChange={(v) => setSort(v as SortKey)}>
                 <DropdownMenuRadioItem value="newest">Newest</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="most-cards">Most cards</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="alphabetical">A–Z</DropdownMenuRadioItem>
@@ -281,16 +299,40 @@ export function DeckSelection({
             </DropdownMenuContent>
           </DropdownMenu>
           <NewDeckButton />
+          {process.env.NEXT_PUBLIC_VERCEL_ENV !== "production" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-2 shrink-0 border-dashed border-amber-500/50 text-amber-500 hover:bg-amber-500/10"
+              disabled={regenStatus === "running"}
+              onClick={async () => {
+                setRegenStatus("running");
+                try {
+                  const res = await regenerateAllCovers();
+                  setRegenStatus(
+                    `Done: ${res.success}/${res.total}${res.failed.length ? ` (failed: ${res.failed.join(", ")})` : ""}`,
+                  );
+                  window.location.reload();
+                } catch {
+                  setRegenStatus("Error");
+                }
+              }}
+            >
+              <RefreshCw className={cn("w-3.5 h-3.5", regenStatus === "running" && "animate-spin")} />
+              {regenStatus === "running" ? "Regenerating..." : "Regen All Covers"}
+            </Button>
+          )}
         </div>
+      )}
+      {regenStatus && regenStatus !== "running" && (
+        <p className="text-xs text-muted-foreground mb-4">{regenStatus}</p>
       )}
 
       {!hasAnyDecks ? (
         <p className="text-sm text-muted-foreground">No decks available.</p>
       ) : noResults ? (
         <p className="text-sm text-muted-foreground">
-          {activeCollectionId
-            ? "No decks in this collection yet."
-            : `No decks match "${query}".`}
+          {activeCollectionId ? "No decks in this collection yet." : `No decks match "${query}".`}
         </p>
       ) : (
         <div className="space-y-12">
@@ -378,38 +420,19 @@ export function DeckSelection({
                         className="group relative w-8 h-8 rounded-full overflow-hidden ring-2 ring-background hover:ring-destructive/50 transition-all"
                       >
                         {deck?.coverImage ? (
-                          <Image
-                            src={deck.coverImage}
-                            alt={deck.title}
-                            fill
-                            className="object-cover"
-                          />
+                          <Image src={deck.coverImage} alt={deck.title} fill className="object-cover" />
                         ) : (
-                          <div
-                            className={cn(
-                              "w-full h-full bg-linear-to-br",
-                              cardGradient(deck?.id ?? ""),
-                            )}
-                          />
+                          <div className={cn("w-full h-full bg-linear-to-br", cardGradient(deck?.id ?? ""))} />
                         )}
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                          <X
-                            size={12}
-                            className="text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                          />
+                          <X size={12} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       </button>
                     ))}
                   </div>
-                  <span className="text-sm text-muted-foreground tabular-nums">
-                    {totalCards} cards
-                  </span>
+                  <span className="text-sm text-muted-foreground tabular-nums">{totalCards} cards</span>
                 </div>
-                <Button
-                  onClick={handleStartStudy}
-                  size="sm"
-                  className="shrink-0 gap-1 rounded-full px-4"
-                >
+                <Button onClick={handleStartStudy} size="sm" className="shrink-0 gap-1 rounded-full px-4">
                   Start Studying
                   <ChevronRight size={14} />
                 </Button>

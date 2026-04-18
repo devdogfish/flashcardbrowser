@@ -102,7 +102,12 @@ export function DeckMetadataForm({ mode, deckId, defaultValues }: DeckMetadataFo
 
       <div className="space-y-1.5">
         <Label>Cover Image</Label>
-        <CoverImageUpload value={coverImage} onChange={setCoverImage} />
+        <CoverImageUpload
+          value={coverImage}
+          onChange={setCoverImage}
+          deckTitle={title}
+          deckDescription={description}
+        />
       </div>
 
       <Button type="submit" disabled={isPending}>

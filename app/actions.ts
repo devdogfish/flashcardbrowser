@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { put } from "@vercel/blob";
+import { put, list } from "@vercel/blob";
 import { schedule, type Grade } from "@/lib/fsrs";
 
 async function requireSession() {
@@ -148,6 +148,239 @@ export async function updateDeck(
   revalidatePath("/decks");
   revalidatePath(`/decks/${deckId}`);
   revalidatePath(`/decks/${deckId}/edit`);
+}
+
+async function buildImagePrompt(
+  cfAccountId: string,
+  cfApiToken: string,
+  title: string,
+  description?: string,
+): Promise<string> {
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/ai/run/@cf/meta/llama-3.1-8b-instruct`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${cfApiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: "system",
+            content: [
+              "You create short visual descriptions for cover images of academic study decks.",
+              "Describe ONE CENTRAL OBJECT or element in sharp focus that instantly communicates the subject. Shallow depth of field, dark background.",
+              "Rules:",
+              "- Output ONLY 10-20 words. No preamble, no quotes.",
+              "- ONE recognizable object fills most of the frame. Not a wide room, not a cityscape, not a panorama.",
+              "- The object must be INSTANTLY recognizable as related to the topic — no guessing required.",
+              "- NEVER use books, bookshelves, libraries, desks, classrooms, or generic academic imagery.",
+              "- For philosophical, spiritual, or contemplative subjects: nature metaphors are perfect (lotus, still water, candle flames, etc.).",
+              "- For technical/scientific subjects: show a real relevant object up close (a GPU chip, a microscope lens, a satellite dish, a stethoscope, etc.).",
+              "- Examples:",
+              "  'Web Search Engines' → 'close-up of a glowing fiber optic cable bundle against pure black'",
+              "  'Data Science' → 'a single dark monitor displaying scrolling amber data streams'",
+              "  'Machine Learning' → 'extreme close-up of a GPU chip with warm golden light on its circuits'",
+              "  'Content Moderation' → 'close-up of a wire mesh screen with golden light filtering through'",
+              "  'Criminal Law' → 'a brass gavel head resting on dark polished wood, shallow depth of field'",
+              "  'Meditation' → 'a single lotus flower floating on still dark water with soft golden light'",
+              "  'Philosophy' → 'a candle flame reflected infinitely in two facing mirrors in darkness'",
+              "  'Organic Chemistry' → 'macro shot of a single crystal structure refracting warm amber light'",
+              "- Style: dark, atmospheric, warm gold/amber accents, one subject in focus, blurred background.",
+              "- NO text, letters, numbers, people, faces, hands, brand logos, clipart, icons, wide shots, or full rooms.",
+            ].join(" "),
+          },
+          {
+            role: "user",
+            content: description
+              ? `Subject: ${title}\nDescription: ${description}`
+              : `Subject: ${title}`,
+          },
+        ],
+        max_tokens: 60,
+      }),
+    },
+  );
+
+  const fallback = "ink slowly diffusing through dark water, forming organic cloudy shapes";
+
+  if (!res.ok) {
+    console.warn("[buildImagePrompt] Cloudflare LLM error, using fallback");
+    return buildFinalPrompt(fallback);
+  }
+
+  const json = (await res.json()) as { result: { response: string } };
+  const raw = json.result?.response?.trim().replace(/^["']|["']$/g, "") || fallback;
+  const visual = raw.split("\n")[0].slice(0, 80);
+
+  return buildFinalPrompt(visual);
+}
+
+function buildFinalPrompt(visual: string): string {
+  return [
+    `Dark moody cinematic photograph: ${visual}.`,
+    "Warm gold and amber highlights, deep charcoal shadows, shallow depth of field, cinematic lighting.",
+    "Atmospheric, editorial quality. No text, no letters, no numbers, no people, no faces, no icons.",
+  ].join(" ");
+}
+
+async function pollPixazo(requestId: string, apiKey: string): Promise<string> {
+  const pollUrl = `https://gateway.pixazo.ai/v2/requests/status/${requestId}`;
+  for (let i = 0; i < 30; i++) {
+    await new Promise((r) => setTimeout(r, 1000));
+    const res = await fetch(pollUrl, {
+      headers: { "Ocp-Apim-Subscription-Key": apiKey },
+    });
+    if (!res.ok) continue;
+    const data = (await res.json()) as {
+      status: string;
+      output?: { media_url?: string[] };
+    };
+    if (data.status === "COMPLETED" && data.output?.media_url?.[0]) {
+      return data.output.media_url[0];
+    }
+    if (data.status === "FAILED" || data.status === "ERROR") {
+      throw new Error("Pixazo image generation failed");
+    }
+  }
+  throw new Error("Pixazo image generation timed out");
+}
+
+export async function generateCoverImage(
+  title: string,
+  description?: string,
+): Promise<{ url: string }> {
+  await requireSession();
+
+  const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const cfApiToken = process.env.CLOUDFLARE_API_TOKEN;
+  if (!cfAccountId || !cfApiToken) {
+    throw new Error("Image generation is not configured.");
+  }
+
+  const prompt = await buildImagePrompt(cfAccountId, cfApiToken, title, description);
+  console.log("[generateCoverImage] prompt:", prompt);
+
+  try {
+    const pixazoKey = process.env.PIXAZO_API_KEY;
+    if (!pixazoKey) throw new Error("No Pixazo key, falling back to Cloudflare");
+
+    const res = await fetch(
+      "https://gateway.pixazo.ai/flux-schnell/v1/schnell/textToImage",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Ocp-Apim-Subscription-Key": pixazoKey,
+        },
+        body: JSON.stringify({
+          prompt,
+          image_size: "landscape_4_3",
+          num_inference_steps: 4,
+          output_format: "jpeg",
+        }),
+      },
+    );
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error("[generateCoverImage] Pixazo error:", res.status, body);
+      throw new Error("Pixazo request failed");
+    }
+
+    const data = (await res.json()) as { request_id: string };
+    const imageUrl = await pollPixazo(data.request_id, pixazoKey);
+
+    // Download and upload to Vercel Blob
+    const imgRes = await fetch(imageUrl);
+    const bytes = await imgRes.arrayBuffer();
+    return await uploadCoverBytes(bytes);
+  } catch (pixazoErr) {
+    console.warn("[generateCoverImage] Pixazo failed, trying Cloudflare:", pixazoErr);
+
+    // Fallback: Cloudflare
+    try {
+      const res = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/ai/run/@cf/black-forest-labs/flux-1-schnell`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${cfApiToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ prompt, steps: 8 }),
+        },
+      );
+
+      if (!res.ok) {
+        const body = await res.text();
+        console.error("[generateCoverImage] Cloudflare error:", res.status, body);
+        throw new Error("Failed to generate image. Please try again or upload manually.");
+      }
+
+      const json = (await res.json()) as { result: { image: string } };
+      const binStr = atob(json.result.image);
+      const bytes = Uint8Array.from(binStr, (c) => c.charCodeAt(0)).buffer;
+      return await uploadCoverBytes(bytes);
+    } catch (cfErr) {
+      console.error("[generateCoverImage] Both providers failed:", cfErr);
+      throw new Error("Failed to generate image. Please try again or upload manually.");
+    }
+  }
+}
+
+async function uploadCoverBytes(bytes: ArrayBuffer): Promise<{ url: string }> {
+  const hashBuffer = await crypto.subtle.digest("SHA-256", bytes);
+  const hash = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 16);
+  const filename = `covers/ai-${hash}.jpg`;
+
+  const { blobs } = await list({ prefix: filename, limit: 1 });
+  if (blobs.length > 0) {
+    return { url: blobs[0].url };
+  }
+
+  const blob = await put(filename, bytes, {
+    access: "public",
+    addRandomSuffix: false,
+    contentType: "image/jpeg",
+  });
+  return { url: blob.url };
+}
+
+export async function regenerateAllCovers(): Promise<{
+  total: number;
+  success: number;
+  failed: string[];
+}> {
+  const { user } = await requireSession();
+  const decks = await prisma.deck.findMany({
+    where: { ownerId: user.id },
+    select: { id: true, title: true, description: true },
+  });
+
+  const results = { total: decks.length, success: 0, failed: [] as string[] };
+
+  for (const deck of decks) {
+    try {
+      const { url } = await generateCoverImage(deck.title, deck.description ?? undefined);
+      await prisma.deck.update({
+        where: { id: deck.id },
+        data: { coverImage: url },
+      });
+      results.success++;
+      console.log(`[regenerateAllCovers] ${deck.title}: OK`);
+    } catch (err) {
+      results.failed.push(deck.title);
+      console.error(`[regenerateAllCovers] ${deck.title}: FAILED`, err);
+    }
+  }
+
+  revalidatePath("/decks");
+  return results;
 }
 
 export async function deleteDeck(deckId: string): Promise<void> {
@@ -293,7 +526,9 @@ export async function searchUsersForSharing(
 
 export async function getDeckShares(
   deckId: string,
-): Promise<{ userId: string; name: string | null; email: string; createdAt: string }[]> {
+): Promise<
+  { userId: string; name: string | null; email: string; createdAt: string }[]
+> {
   const { user } = await requireSession();
   await assertOwner(deckId, user.id);
 
@@ -329,7 +564,10 @@ export async function shareDeckWithUser(
   revalidatePath(`/decks/${deckId}`);
 }
 
-export async function unshareDeck(deckId: string, userId: string): Promise<void> {
+export async function unshareDeck(
+  deckId: string,
+  userId: string,
+): Promise<void> {
   const { user } = await requireSession();
   await assertOwner(deckId, user.id);
 
@@ -372,7 +610,10 @@ export async function renameCollection(
   const collection = await prisma.collection.findUnique({ where: { id } });
   if (!collection || collection.userId !== user.id)
     throw new Error("Not found");
-  await prisma.collection.update({ where: { id }, data: { name: name.trim() } });
+  await prisma.collection.update({
+    where: { id },
+    data: { name: name.trim() },
+  });
   revalidatePath("/decks");
 }
 
