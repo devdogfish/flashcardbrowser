@@ -1,5 +1,5 @@
 {
-  "buildCommand": "bunx prisma migrate deploy && bunx prisma generate && bun run build",
+  "buildCommand": "bunx prisma generate && bun run build",
   "crons": [
     {
       "path": "/api/cron/merge-suggestions",

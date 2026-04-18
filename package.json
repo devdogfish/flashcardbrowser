@@ -12,9 +12,9 @@
     "db:stop": "docker stop flashcardbrowser-db",
     "db:seed": "bun run prisma/seed.ts",
     "db:reseed": "bunx prisma migrate reset && bun run db:seed",
-    "db:push-prod": "bun --env-file=.env.production.local x prisma db push --force-reset",
-    "db:seed-prod": "bun --env-file=.env.production.local run prisma/seed.ts",
-    "db:reset-prod": "vercel env pull .env.production.local --environment=production && bun run db:push-prod && bun run db:seed-prod"
+    "db:push-prod": "export $(grep '^DATABASE_URL' .env.local | xargs) && bunx prisma db push --force-reset",
+    "db:seed-prod": "export $(grep '^DATABASE_URL' .env.local | xargs) && NODE_NO_WARNINGS=1 bun run prisma/seed.ts",
+    "db:reset-prod": "vercel env pull .env.local --environment=production && bun run db:push-prod && bun run db:seed-prod"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.64",
